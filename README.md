@@ -106,9 +106,13 @@ classDiagram
     -Carrito carrito
     -List~CanalNotificacion~ canalesPreferidos
     +String direccion
+    +String email
+    +String telefono
+    +String tokenDispositivo
     +getCarrito() Carrito
     +getCanalesPreferidos() List~CanalNotificacion~
     +modificarPreferenciasNotificacion(canales: List~CanalNotificacion~)
+    +getDestinatarioPara(canal: CanalNotificacion) String
   }
   Usuario <|-- Cliente
 
@@ -187,7 +191,7 @@ classDiagram
   }
 
   class ManagerNotificaciones {
-    -NotificacionFactory notificacionFactory
+    -EstrategiaNotificacionFactory notificacionFactory
     +actualizar(pedido: Pedido)
     -enviarACanales(mensaje: String, cliente: Cliente)
   }
@@ -249,7 +253,7 @@ classDiagram
   }
 
   class MetodoPagoFactory {
-    +crearMetodoPago(tipo: TipoPago)$ MetodoPago
+    +crearMetodoPago(tipo: TipoPago) MetodoPago
   }
 
   class MetodoPago {
@@ -279,8 +283,8 @@ classDiagram
   MetodoPago <|.. PayPal
   MetodoPago <|.. Transferencia
 
-  class NotificacionFactory {
-    +crearNotificacion(tipo: CanalNotificacion)$ EstrategiaNotificacion
+  class EstrategiaNotificacionFactory {
+    +crearNotificacion(tipo: CanalNotificacion) EstrategiaNotificacion
   }
 
   class EstrategiaNotificacion {
@@ -288,24 +292,23 @@ classDiagram
     +enviarMensaje(mensaje: String, destinatario: String)
   }
 
-  class NotificacionEmail {
+  class EstrategiaNotificacionEmail {
     -String smtpHost
     +enviarMensaje(mensaje: String, destinatario: String)
   }
 
-  class NotificacionSMS {
+  class EstrategiaNotificacionSMS {
     -String proveedorSMS
     +enviarMensaje(mensaje: String, destinatario: String)
   }
 
-  class NotificacionPush {
-    -String tokenDispositivo
+  class EstrategiaNotificacionPush {
     +enviarMensaje(mensaje: String, destinatario: String)
   }
 
-  EstrategiaNotificacion <|.. NotificacionEmail
-  EstrategiaNotificacion <|.. NotificacionSMS
-  EstrategiaNotificacion <|.. NotificacionPush
+  EstrategiaNotificacion <|.. EstrategiaNotificacionEmail
+  EstrategiaNotificacion <|.. EstrategiaNotificacionSMS
+  EstrategiaNotificacion <|.. EstrategiaNotificacionPush
 
   EMarketFacade --> "1" AutenticacionService : delega auth a
   EMarketFacade --> "1" CatalogoService : delega catálogo a
@@ -334,7 +337,7 @@ classDiagram
   ProcesadorPagos ..> MetodoPagoFactory : usa para crear método
   ProcesadorPagos ..> Pedido : opera sobre
   MetodoPagoFactory ..> MetodoPago : crea
-  ManagerNotificaciones --> "1" NotificacionFactory : utiliza
+  ManagerNotificaciones --> "1" EstrategiaNotificacionFactory : utiliza
   ManagerNotificaciones ..> EstrategiaNotificacion : ejecuta
-  NotificacionFactory ..> EstrategiaNotificacion : crea
+  EstrategiaNotificacionFactory ..> EstrategiaNotificacion : crea
 ```
