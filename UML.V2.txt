@@ -14,7 +14,7 @@ classDiagram
     PUSH
   }
 
-  class EMarketFacade {
+  class LibreriaFacade {
     -AutenticacionService autService
     -CatalogoService catService
     -CarritoService carritoService
@@ -315,10 +315,10 @@ classDiagram
   EstrategiaNotificacion <|.. EstrategiaNotificacionSMS
   EstrategiaNotificacion <|.. EstrategiaNotificacionPush
 
-  EMarketFacade --> "1" AutenticacionService : delega auth a
-  EMarketFacade --> "1" CatalogoService : delega catálogo a
-  EMarketFacade --> "1" CarritoService : delega carrito a
-  EMarketFacade --> "1" PedidoService : delega pedidos a
+  LibreriaFacade --> "1" AutenticacionService : delega auth a
+  LibreriaFacade --> "1" CatalogoService : delega catálogo a
+  LibreriaFacade --> "1" CarritoService : delega carrito a
+  LibreriaFacade --> "1" PedidoService : delega pedidos a
 
   AutenticacionService --> "*" Usuario : gestiona
   CatalogoService --> "1" ComponenteCatalogo : navega

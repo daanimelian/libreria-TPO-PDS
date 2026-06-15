@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(mvn compile *)",
-      "Bash(/c/Users/lucia/.m2/wrapper/dists/apache-maven-3.9.14/db91789b/bin/mvn compile *)"
-    ]
-  }
-}
