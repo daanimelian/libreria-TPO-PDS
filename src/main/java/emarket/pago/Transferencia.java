@@ -1,6 +1,17 @@
 package emarket.pago;
 
+import java.util.Scanner;
+
 public class Transferencia implements MetodoPago {
+
+    public static DatosPago pedirDatos(Scanner sc) {
+        System.out.print("  CBU (22 dígitos) : ");
+        String cbu = sc.nextLine().trim();
+        System.out.print("  Banco            : ");
+        String banco = sc.nextLine().trim();
+        return DatosPago.paraTransferencia(cbu, banco);
+    }
+
 
     private final String cbu;
     private final String banco;

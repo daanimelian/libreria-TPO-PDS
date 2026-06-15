@@ -1,6 +1,14 @@
 package emarket.pago;
 
+import java.util.Scanner;
+
 public class PayPal implements MetodoPago {
+
+    public static DatosPago pedirDatos(Scanner sc) {
+        System.out.print("  Email de tu cuenta PayPal : ");
+        return DatosPago.paraPayPal(sc.nextLine().trim());
+    }
+
 
     private final String email;
 

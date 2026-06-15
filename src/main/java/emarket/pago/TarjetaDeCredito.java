@@ -1,6 +1,19 @@
 package emarket.pago;
 
+import java.util.Scanner;
+
 public class TarjetaDeCredito implements MetodoPago {
+
+    public static DatosPago pedirDatos(Scanner sc) {
+        System.out.print("  Número de tarjeta (16 dígitos) : ");
+        String numero = sc.nextLine().trim();
+        System.out.print("  Nombre del titular             : ");
+        String titular = sc.nextLine().trim();
+        System.out.print("  Fecha de expiración (MM/AA)    : ");
+        String fecha = sc.nextLine().trim();
+        return DatosPago.paraTarjeta(numero, titular, fecha);
+    }
+
 
     private final String numero;
     private final String titular;
