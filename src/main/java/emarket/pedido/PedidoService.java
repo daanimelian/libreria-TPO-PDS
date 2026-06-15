@@ -8,6 +8,7 @@ import emarket.estado.EstadoPedido;
 import emarket.estado.EstadoPendiente;
 import emarket.notificacion.EstrategiaNotificacionFactory;
 import emarket.notificacion.ManagerNotificaciones;
+import emarket.pago.DatosPago;
 import emarket.pago.ProcesadorPagos;
 import emarket.pago.TipoPago;
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ public class PedidoService {
         this.managerNotificaciones = EstrategiaNotificacionFactory.crearManager();
     }
 
-    public Pedido confirmarCompra(Cliente cliente, TipoPago tipoPago) {
+    public Pedido confirmarCompra(Cliente cliente, TipoPago tipoPago, DatosPago datosPago) {
         Carrito carrito = cliente.getCarrito();
         if (carrito.estaVacio()) {
             throw new IllegalStateException("El carrito está vacío");
@@ -55,7 +56,10 @@ public class PedidoService {
         pedido.setEstado(new EstadoPendiente());
 
         // Procesar el cobro
-        procesadorPagos.procesarCobro(pedido, tipoPago);
+        boolean cobrado = procesadorPagos.procesarCobro(pedido, tipoPago, datosPago);
+        if (!cobrado) {
+            throw new IllegalStateException("El pago fue rechazado. Verificá los datos ingresados.");
+        }
 
         repoPedidos.guardar(pedido);
         carrito.vaciarCarrito();

@@ -2,11 +2,12 @@ package emarket.pago;
 
 public class MetodoPagoFactory {
 
-    public MetodoPago crearMetodoPago(TipoPago tipo) {
+    public MetodoPago crearMetodoPago(TipoPago tipo, DatosPago datos) {
         return switch (tipo) {
-            case TARJETA_CREDITO -> new TarjetaDeCredito();
-            case PAYPAL          -> new PayPal();
-            case TRANSFERENCIA   -> new Transferencia();
+            case TARJETA_CREDITO -> new TarjetaDeCredito(
+                    datos.getNumeroTarjeta(), datos.getTitular(), datos.getFechaExpiracion());
+            case PAYPAL          -> new PayPal(datos.getEmailPayPal());
+            case TRANSFERENCIA   -> new Transferencia(datos.getCbu(), datos.getBanco());
         };
     }
 }
