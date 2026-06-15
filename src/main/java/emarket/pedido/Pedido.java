@@ -2,6 +2,7 @@ package emarket.pedido;
 
 import emarket.auth.Cliente;
 import emarket.estado.EstadoPedido;
+import emarket.notificacion.EventoNotificacion;
 import emarket.notificacion.ObservadorNotificacion;
 import emarket.notificacion.SujetoObservable;
 import java.util.ArrayList;
@@ -44,8 +45,13 @@ public class Pedido implements SujetoObservable {
 
     @Override
     public void notificarCambios() {
+        EventoNotificacion evento = new EventoNotificacion(
+                id,
+                estadoActual != null ? estadoActual.getNombre() : "SIN ESTADO",
+                cliente
+        );
         for (ObservadorNotificacion o : observadores) {
-            o.actualizar(this);
+            o.actualizar(evento);
         }
     }
 

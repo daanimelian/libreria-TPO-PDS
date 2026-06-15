@@ -106,9 +106,13 @@ classDiagram
     -Carrito carrito
     -List~CanalNotificacion~ canalesPreferidos
     +String direccion
+    +String email
+    +String telefono
+    +String tokenDispositivo
     +getCarrito() Carrito
     +getCanalesPreferidos() List~CanalNotificacion~
     +modificarPreferenciasNotificacion(canales: List~CanalNotificacion~)
+    +getDestinatarioPara(canal: CanalNotificacion) String
   }
   Usuario <|-- Cliente
 
@@ -183,12 +187,20 @@ classDiagram
 
   class ObservadorNotificacion {
     <<interface>>
-    +actualizar(pedido: Pedido)
+    +actualizar(evento: EventoNotificacion)
+  }
+
+  class EventoNotificacion {
+    -int idPedido
+    -String estadoNombre
+    -Cliente cliente
+    +getIdPedido() int
+    +getEstadoNombre() String
+    +getCliente() Cliente
   }
 
   class ManagerNotificaciones {
-    -NotificacionFactory notificacionFactory
-    +actualizar(pedido: Pedido)
+    +actualizar(evento: EventoNotificacion)
     -enviarACanales(mensaje: String, cliente: Cliente)
   }
   ObservadorNotificacion <|.. ManagerNotificaciones
@@ -279,8 +291,9 @@ classDiagram
   MetodoPago <|.. PayPal
   MetodoPago <|.. Transferencia
 
-  class NotificacionFactory {
+  class EstrategiaNotificacionFactory {
     +crearNotificacion(tipo: CanalNotificacion)$ EstrategiaNotificacion
+    +crearManager()$ ManagerNotificaciones
   }
 
   class EstrategiaNotificacion {
@@ -288,24 +301,23 @@ classDiagram
     +enviarMensaje(mensaje: String, destinatario: String)
   }
 
-  class NotificacionEmail {
+  class EstrategiaNotificacionEmail {
     -String smtpHost
     +enviarMensaje(mensaje: String, destinatario: String)
   }
 
-  class NotificacionSMS {
+  class EstrategiaNotificacionSMS {
     -String proveedorSMS
     +enviarMensaje(mensaje: String, destinatario: String)
   }
 
-  class NotificacionPush {
-    -String tokenDispositivo
+  class EstrategiaNotificacionPush {
     +enviarMensaje(mensaje: String, destinatario: String)
   }
 
-  EstrategiaNotificacion <|.. NotificacionEmail
-  EstrategiaNotificacion <|.. NotificacionSMS
-  EstrategiaNotificacion <|.. NotificacionPush
+  EstrategiaNotificacion <|.. EstrategiaNotificacionEmail
+  EstrategiaNotificacion <|.. EstrategiaNotificacionSMS
+  EstrategiaNotificacion <|.. EstrategiaNotificacionPush
 
   EMarketFacade --> "1" AutenticacionService : delega auth a
   EMarketFacade --> "1" CatalogoService : delega catálogo a
@@ -319,6 +331,7 @@ classDiagram
   PedidoService --> "1" RepositorioPedidos : persiste en
   PedidoService --> "1" ProcesadorPagos : delega cobro a
   PedidoService --> "1" ManagerNotificaciones : registra como observador
+  PedidoService ..> EstrategiaNotificacionFactory : obtiene manager de
   PedidoService ..> ConfiguracionSistema : consulta impuestos
   PedidoService ..> Carrito : lee ítems de
 
@@ -334,7 +347,10 @@ classDiagram
   ProcesadorPagos ..> MetodoPagoFactory : usa para crear método
   ProcesadorPagos ..> Pedido : opera sobre
   MetodoPagoFactory ..> MetodoPago : crea
-  ManagerNotificaciones --> "1" NotificacionFactory : utiliza
+  Pedido ..> EventoNotificacion : crea y pasa
+  ManagerNotificaciones ..> EventoNotificacion : consume
+  ManagerNotificaciones ..> EstrategiaNotificacionFactory : delega creación a
   ManagerNotificaciones ..> EstrategiaNotificacion : ejecuta
-  NotificacionFactory ..> EstrategiaNotificacion : crea
+  EstrategiaNotificacionFactory ..> EstrategiaNotificacion : crea
+  EstrategiaNotificacionFactory ..> ManagerNotificaciones : crea
 ```

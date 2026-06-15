@@ -6,6 +6,7 @@ import emarket.carrito.ItemCarrito;
 import emarket.config.ConfiguracionSistema;
 import emarket.estado.EstadoPedido;
 import emarket.estado.EstadoPendiente;
+import emarket.notificacion.EstrategiaNotificacionFactory;
 import emarket.notificacion.ManagerNotificaciones;
 import emarket.pago.ProcesadorPagos;
 import emarket.pago.TipoPago;
@@ -21,7 +22,7 @@ public class PedidoService {
     public PedidoService() {
         this.repoPedidos = new RepositorioPedidos();
         this.procesadorPagos = new ProcesadorPagos();
-        this.managerNotificaciones = new ManagerNotificaciones();
+        this.managerNotificaciones = EstrategiaNotificacionFactory.crearManager();
     }
 
     public Pedido confirmarCompra(Cliente cliente, TipoPago tipoPago) {
