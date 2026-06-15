@@ -11,7 +11,6 @@ import emarket.catalogo.Producto;
 import emarket.estado.*;
 import emarket.facade.LibreriaFacade;
 import emarket.notificacion.CanalNotificacion;
-import emarket.pago.DatosPago;
 import emarket.pago.TipoPago;
 import emarket.pedido.ItemPedido;
 import emarket.pedido.Pedido;
@@ -276,44 +275,14 @@ public class Main {
             return;
         }
 
-        DatosPago datosPago = pedirDatosPago(tipoPago);
-        if (datosPago == null) return;
-
-        System.out.println();
         try {
-            facade.confirmarCompra(tipoPago, datosPago);
+            facade.confirmarCompra(tipoPago, facade.pedirDatosPago(tipoPago, scanner));
             ok("¡Compra confirmada con éxito!");
         } catch (IllegalStateException e) {
             error(e.getMessage());
         }
     }
 
-    private static DatosPago pedirDatosPago(TipoPago tipo) {
-        System.out.println();
-        return switch (tipo) {
-            case TARJETA_CREDITO -> {
-                System.out.print("  Número de tarjeta (16 dígitos) : ");
-                String numero = scanner.nextLine().trim();
-                System.out.print("  Nombre del titular             : ");
-                String titular = scanner.nextLine().trim();
-                System.out.print("  Fecha de expiración (MM/AA)    : ");
-                String fecha = scanner.nextLine().trim();
-                yield DatosPago.paraTarjeta(numero, titular, fecha);
-            }
-            case PAYPAL -> {
-                System.out.print("  Email de tu cuenta PayPal : ");
-                String email = scanner.nextLine().trim();
-                yield DatosPago.paraPayPal(email);
-            }
-            case TRANSFERENCIA -> {
-                System.out.print("  CBU (22 dígitos) : ");
-                String cbu = scanner.nextLine().trim();
-                System.out.print("  Banco            : ");
-                String banco = scanner.nextLine().trim();
-                yield DatosPago.paraTransferencia(cbu, banco);
-            }
-        };
-    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // ACCIONES — PEDIDOS (CLIENTE)

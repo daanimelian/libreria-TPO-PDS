@@ -10,7 +10,9 @@ import emarket.catalogo.Producto;
 import emarket.estado.EstadoPedido;
 import emarket.notificacion.CanalNotificacion;
 import emarket.pago.DatosPago;
+import emarket.pago.MetodoPagoFactory;
 import emarket.pago.TipoPago;
+import java.util.Scanner;
 import emarket.pedido.Pedido;
 import emarket.pedido.PedidoService;
 import java.util.List;
@@ -22,12 +24,14 @@ public class LibreriaFacade {
     private CatalogoService catService;
     private CarritoService carritoService;
     private PedidoService pedidoService;
+    private MetodoPagoFactory metodoPagoFactory;
 
     public LibreriaFacade() {
         this.autService = new AutenticacionService();
         this.catService = new CatalogoService();
         this.carritoService = new CarritoService(catService);
         this.pedidoService = new PedidoService();
+        this.metodoPagoFactory = new MetodoPagoFactory();
     }
 
     // ── Autenticación ────────────────────────────────────────────────────────
@@ -80,6 +84,10 @@ public class LibreriaFacade {
     }
 
     // ── Pedidos ──────────────────────────────────────────────────────────────
+
+    public DatosPago pedirDatosPago(TipoPago tipoPago, Scanner sc) {
+        return metodoPagoFactory.pedirDatos(tipoPago, sc);
+    }
 
     public void confirmarCompra(TipoPago tipoPago, DatosPago datosPago) {
         verificarAutenticacion();
