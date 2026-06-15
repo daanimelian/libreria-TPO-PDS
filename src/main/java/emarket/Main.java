@@ -165,9 +165,12 @@ public class Main {
         System.out.print("  Usuario    : ");
         String username = scanner.nextLine().trim();
         String pass = pedirPasswordConConfirmacion();
+        System.out.print("  Clave de administrador: ");
+        String claveAdmin = scanner.nextLine().trim();
+
 
         try {
-            facade.registrarAdministrador(username, pass);
+            facade.registrarAdministrador(username, pass, claveAdmin);
             ok("Administrador '" + username + "' registrado correctamente.");
         } catch (Exception e) {
             error("Error al registrar: " + e.getMessage());
@@ -422,7 +425,7 @@ public class Main {
                 "juan@email.com", "1155551234", "TOKEN_JUAN",
                 Arrays.asList(CanalNotificacion.EMAIL, CanalNotificacion.PUSH));
 
-        facade.registrarAdministrador("admin", "admin123");
+        facade.registrarAdministrador("admin", "admin123", "admin123");
     }
 
     // ══════════════════════════════════════════════════════════════════════════

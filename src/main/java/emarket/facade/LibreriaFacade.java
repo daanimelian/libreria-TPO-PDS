@@ -52,8 +52,8 @@ public class LibreriaFacade {
                 username, pass, direccion, email, telefono, tokenDispositivo, canalesPreferidos);
     }
 
-    public void registrarAdministrador(String username, String pass) {
-        autService.registrarAdministrador(username, pass);
+    public void registrarAdministrador(String username, String pass, String claveAdmin) {
+        autService.registrarAdministrador(username, pass, claveAdmin);
     }
 
     // ── Catálogo ─────────────────────────────────────────────────────────────
