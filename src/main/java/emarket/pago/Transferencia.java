@@ -2,13 +2,31 @@ package emarket.pago;
 
 public class Transferencia implements MetodoPago {
 
-    private String cbu = "0000003100012345678901";
-    private String banco = "Banco Nación";
+    private final String cbu;
+    private final String banco;
+
+    public Transferencia(String cbu, String banco) {
+        this.cbu   = cbu;
+        this.banco = banco;
+    }
 
     @Override
     public boolean pagar(double monto) {
+        if (!validar()) return false;
         System.out.printf("  Procesando transferencia bancaria (%s - CBU: %s) por $%.2f... APROBADO%n",
                 banco, cbu, monto);
+        return true;
+    }
+
+    private boolean validar() {
+        if (cbu == null || !cbu.matches("\\d{22}")) {
+            System.out.println("  ✗ CBU inválido (debe tener exactamente 22 dígitos).");
+            return false;
+        }
+        if (banco == null || banco.isBlank()) {
+            System.out.println("  ✗ El nombre del banco no puede estar vacío.");
+            return false;
+        }
         return true;
     }
 }

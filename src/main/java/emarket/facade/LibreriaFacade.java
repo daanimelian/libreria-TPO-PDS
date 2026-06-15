@@ -9,6 +9,7 @@ import emarket.catalogo.ComponenteCatalogo;
 import emarket.catalogo.Producto;
 import emarket.estado.EstadoPedido;
 import emarket.notificacion.CanalNotificacion;
+import emarket.pago.DatosPago;
 import emarket.pago.TipoPago;
 import emarket.pedido.Pedido;
 import emarket.pedido.PedidoService;
@@ -80,13 +81,13 @@ public class LibreriaFacade {
 
     // ── Pedidos ──────────────────────────────────────────────────────────────
 
-    public void confirmarCompra(TipoPago tipoPago) {
+    public void confirmarCompra(TipoPago tipoPago, DatosPago datosPago) {
         verificarAutenticacion();
         Cliente cliente = autService.getClienteActual();
         if (cliente == null) {
             throw new IllegalStateException("Solo los clientes pueden realizar compras");
         }
-        pedidoService.confirmarCompra(cliente, tipoPago);
+        pedidoService.confirmarCompra(cliente, tipoPago, datosPago);
     }
 
     public void actualizarEstadoPedido(int idPedido, EstadoPedido nuevoEstado) {
