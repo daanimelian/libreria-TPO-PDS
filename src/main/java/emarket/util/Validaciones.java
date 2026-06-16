@@ -18,11 +18,11 @@ public class Validaciones {
 
     public static boolean esNumeroTarjetaValido(String numero) {
         String digitos = normalizarNumeroTarjeta(numero);
-        return digitos.length() != 16 || !digitos.matches("\\d+");
+        return digitos.length() == 16 && digitos.matches("\\d+");
     }
 
     public static boolean esFechaExpiracioValida(String fecha) {
-        return fecha == null || !fecha.matches("(0[1-9]|1[0-2])/\\d{2}");
+        return fecha != null && fecha.matches("(0[1-9]|1[0-2])/\\d{2}");
     }
 
     public static boolean estaVencida(String fechaMMAA) {
@@ -32,6 +32,6 @@ public class Validaciones {
     }
 
     public static boolean esCbuValido(String cbu) {
-        return cbu == null || !cbu.matches("\\d{22}");
+        return cbu != null && cbu.matches("\\d{22}");
     }
 }

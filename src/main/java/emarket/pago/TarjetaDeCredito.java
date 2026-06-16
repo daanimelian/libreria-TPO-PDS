@@ -11,9 +11,9 @@ public class TarjetaDeCredito implements MetodoPago {
         do {
             System.out.print("  Número de tarjeta (16 dígitos) : ");
             numero = Validaciones.normalizarNumeroTarjeta(sc.nextLine().trim());
-            if (Validaciones.esNumeroTarjetaValido(numero))
+            if (!Validaciones.esNumeroTarjetaValido(numero))
                 System.out.println("  ✗ Debe tener exactamente 16 dígitos numéricos.");
-        } while (Validaciones.esNumeroTarjetaValido(numero));
+        } while (!Validaciones.esNumeroTarjetaValido(numero));
 
         do {
             System.out.print("  Nombre del titular             : ");
@@ -25,7 +25,7 @@ public class TarjetaDeCredito implements MetodoPago {
         do {
             System.out.print("  Fecha de expiración (MM/AA)    : ");
             fecha = sc.nextLine().trim();
-            if (Validaciones.esFechaExpiracioValida(fecha))
+            if (!Validaciones.esFechaExpiracioValida(fecha))
                 System.out.println("  ✗ Formato inválido. Ejemplo: 12/27");
             else if (Validaciones.estaVencida(fecha))
                 System.out.println("  ✗ La tarjeta está vencida.");
@@ -56,7 +56,7 @@ public class TarjetaDeCredito implements MetodoPago {
     }
 
     private boolean validar() {
-        if (Validaciones.esNumeroTarjetaValido(numero)) {
+        if (!Validaciones.esNumeroTarjetaValido(numero)) {
             System.out.println("  ✗ Número de tarjeta inválido (debe tener 16 dígitos).");
             return false;
         }
@@ -64,7 +64,7 @@ public class TarjetaDeCredito implements MetodoPago {
             System.out.println("  ✗ El nombre del titular no puede estar vacío.");
             return false;
         }
-        if (Validaciones.esFechaExpiracioValida(fechaExpiracion)) {
+        if (!Validaciones.esFechaExpiracioValida(fechaExpiracion)) {
             System.out.println("  ✗ Fecha de expiración inválida (formato MM/AA, ej: 12/27).");
             return false;
         }

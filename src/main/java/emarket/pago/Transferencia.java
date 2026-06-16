@@ -11,9 +11,9 @@ public class Transferencia implements MetodoPago {
         do {
             System.out.print("  CBU (22 dígitos) : ");
             cbu = sc.nextLine().trim();
-            if (Validaciones.esCbuValido(cbu))
+            if (!Validaciones.esCbuValido(cbu))
                 System.out.println("  ✗ El CBU debe tener exactamente 22 dígitos numéricos.");
-        } while (Validaciones.esCbuValido(cbu));
+        } while (!Validaciones.esCbuValido(cbu));
 
         do {
             System.out.print("  Banco            : ");
@@ -43,7 +43,7 @@ public class Transferencia implements MetodoPago {
     }
 
     private boolean validar() {
-        if (Validaciones.esCbuValido(cbu)) {
+        if (!Validaciones.esCbuValido(cbu)) {
             System.out.println("  ✗ CBU inválido (debe tener exactamente 22 dígitos).");
             return false;
         }
