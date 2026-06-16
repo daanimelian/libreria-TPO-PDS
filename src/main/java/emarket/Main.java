@@ -344,6 +344,7 @@ public class Main {
         try {
             facade.confirmarCompra(tipoPago, facade.pedirDatosPago(tipoPago, scanner));
             ok("¡Compra confirmada con éxito!");
+            mostrarNotificacionesPendientes();
         } catch (IllegalStateException e) {
             error(e.getMessage());
         }

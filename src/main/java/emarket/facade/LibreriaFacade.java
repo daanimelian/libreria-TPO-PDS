@@ -3,6 +3,7 @@ package emarket.facade;
 import emarket.auth.Administrador;
 import emarket.auth.AutenticacionService;
 import emarket.auth.Cliente;
+import emarket.auth.Usuario;
 import emarket.carrito.CarritoService;
 import emarket.carrito.ItemCarrito;
 import emarket.catalogo.Categoria;
@@ -93,13 +94,10 @@ public class LibreriaFacade {
         verificarAutenticacion();
         Cliente cliente = autService.getClienteActual();
         if (cliente == null) throw new IllegalStateException("Solo los clientes tienen carrito");
-        if (!catService.verificarDisponibilidad(idProducto, cantidad)) {
-            Producto p = catService.buscarProductoPorId(idProducto);
-            String nombre = p != null ? p.getNombre() : "id=" + idProducto;
-            throw new IllegalStateException("Stock insuficiente para: " + nombre);
-        }
         Producto p = catService.buscarProductoPorId(idProducto);
         if (p == null) throw new IllegalStateException("Producto no encontrado: id=" + idProducto);
+        if (!catService.verificarDisponibilidad(idProducto, cantidad))
+            throw new IllegalStateException("Stock insuficiente para: " + p.getNombre());
         carritoService.modificarCantidad(cliente, p, cantidad);
     }
 
@@ -123,8 +121,6 @@ public class LibreriaFacade {
             throw new IllegalStateException("Solo los clientes pueden realizar compras");
         }
         pedidoService.confirmarCompra(cliente, tipoPago, datosPago);
-        // El cliente estuvo presente → las notificaciones generadas se marcan como vistas
-        cliente.tomarNotificaciones();
     }
 
     public List<String> tomarNotificaciones() {
@@ -164,7 +160,10 @@ public class LibreriaFacade {
 
     public boolean estaAutenticado()   { return autService.estaAutenticado(); }
     public boolean esCliente()         { return autService.getClienteActual() != null; }
-    public String getUsernameActual()  { return autService.getUsuarioActual().getUsername(); }
+    public String getUsernameActual()  {
+        Usuario u = autService.getUsuarioActual();
+        return u != null ? u.getUsername() : null;
+    }
 
     // ── Carrito (consulta) ───────────────────────────────────────────────────
 

@@ -21,11 +21,12 @@ public class Validaciones {
         return digitos.length() == 16 && digitos.matches("\\d+");
     }
 
-    public static boolean esFechaExpiracioValida(String fecha) {
+    public static boolean esFechaExpiracionValida(String fecha) {
         return fecha != null && fecha.matches("(0[1-9]|1[0-2])/\\d{2}");
     }
 
     public static boolean estaVencida(String fechaMMAA) {
+        if (!esFechaExpiracionValida(fechaMMAA)) return false;
         String[] partes = fechaMMAA.split("/");
         YearMonth expiracion = YearMonth.of(2000 + Integer.parseInt(partes[1]), Integer.parseInt(partes[0]));
         return expiracion.isBefore(YearMonth.now());

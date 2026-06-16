@@ -25,7 +25,7 @@ public class TarjetaDeCredito implements MetodoPago {
         do {
             System.out.print("  Fecha de expiración (MM/AA)    : ");
             fecha = sc.nextLine().trim();
-            if (!Validaciones.esFechaExpiracioValida(fecha))
+            if (!Validaciones.esFechaExpiracionValida(fecha))
                 System.out.println("  ✗ Formato inválido. Ejemplo: 12/27");
             else if (Validaciones.estaVencida(fecha))
                 System.out.println("  ✗ La tarjeta está vencida.");
@@ -64,7 +64,7 @@ public class TarjetaDeCredito implements MetodoPago {
             System.out.println("  ✗ El nombre del titular no puede estar vacío.");
             return false;
         }
-        if (!Validaciones.esFechaExpiracioValida(fechaExpiracion)) {
+        if (!Validaciones.esFechaExpiracionValida(fechaExpiracion)) {
             System.out.println("  ✗ Fecha de expiración inválida (formato MM/AA, ej: 12/27).");
             return false;
         }
