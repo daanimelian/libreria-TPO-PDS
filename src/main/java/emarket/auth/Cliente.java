@@ -2,16 +2,13 @@ package emarket.auth;
 
 import emarket.carrito.Carrito;
 import emarket.notificacion.CanalNotificacion;
-import emarket.notificacion.Notificacion;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Cliente extends Usuario {
 
     private final Carrito carrito;
     private List<CanalNotificacion> canalesPreferidos;
-    private final List<Notificacion> notificaciones = new ArrayList<>();
     private String direccion;
     private String email;
     private String telefono;
@@ -39,21 +36,6 @@ public class Cliente extends Usuario {
             case SMS   -> telefono;
             case PUSH  -> tokenDispositivo;
         };
-    }
-
-    public void agregarNotificacion(String mensaje) {
-        notificaciones.add(new Notificacion(mensaje));
-    }
-
-    // Devuelve las notificaciones no vistas y las marca como vistas.
-    public List<String> tomarNotificaciones() {
-        List<Notificacion> noVistas = notificaciones.stream()
-                .filter(n -> !n.isVisto())
-                .toList();
-        noVistas.forEach(Notificacion::marcarVisto);
-        return noVistas.stream()
-                .map(Notificacion::toString)
-                .collect(Collectors.toList());
     }
 
     public String getDireccion() { return direccion; }

@@ -1,15 +1,22 @@
 package emarket.notificacion;
 
 import emarket.auth.Cliente;
+import emarket.repositorio.IRepositorioNotificaciones;
 
 // Observer concreto: recibe cambios de estado y los reenvía por cada canal preferido del cliente
 public class ManagerNotificaciones implements ObservadorNotificacion {
+
+    private final IRepositorioNotificaciones repositorio;
+
+    public ManagerNotificaciones(IRepositorioNotificaciones repositorio) {
+        this.repositorio = repositorio;
+    }
 
     @Override
     public void actualizar(EventoNotificacion evento) {
         Cliente cliente = evento.getCliente();
         String mensaje = buildMensaje(evento);
-        cliente.agregarNotificacion(mensaje);
+        repositorio.guardar(cliente.getUsername(), mensaje);
         enviarACanales(cliente, mensaje);
     }
 

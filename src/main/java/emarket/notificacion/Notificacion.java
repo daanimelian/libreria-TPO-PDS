@@ -17,6 +17,17 @@ public class Notificacion {
         this.visto     = false;
     }
 
+    // Constructor de reconstitución desde la DB: preserva timestamp y estado originales
+    private Notificacion(String mensaje, LocalDateTime timestamp, boolean visto) {
+        this.mensaje   = mensaje;
+        this.timestamp = timestamp;
+        this.visto     = visto;
+    }
+
+    public static Notificacion reconstruirDesdeDB(String mensaje, LocalDateTime timestamp, boolean visto) {
+        return new Notificacion(mensaje, timestamp, visto);
+    }
+
     public String getMensaje()          { return mensaje; }
     public LocalDateTime getTimestamp() { return timestamp; }
     public boolean isVisto()            { return visto; }

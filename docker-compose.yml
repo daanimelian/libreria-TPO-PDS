@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: libreria_db
+    environment:
+      POSTGRES_DB: libreria
+      POSTGRES_USER: libreria_user
+      POSTGRES_PASSWORD: libreria_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - libreria_data:/var/lib/postgresql/data
+      - ./src/main/resources/db/init.sql:/docker-entrypoint-initdb.d/01_init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U libreria_user -d libreria"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  libreria_data:

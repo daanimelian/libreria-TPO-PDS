@@ -1,24 +1,25 @@
 package emarket.auth;
 
 import emarket.notificacion.CanalNotificacion;
-import java.util.ArrayList;
+import emarket.repositorio.IRepositorioUsuarios;
 import java.util.List;
 
 public class AutenticacionService {
 
     private static final String CLAVE_ADMIN = "admin123";
 
-    private final List<Usuario> usuarios = new ArrayList<>();
+    private final IRepositorioUsuarios repositorio;
     private Usuario usuarioActual;
 
+    public AutenticacionService(IRepositorioUsuarios repositorio) {
+        this.repositorio = repositorio;
+    }
+
     public boolean iniciarSesion(String username, String pass) {
-        for (Usuario u : usuarios) {
-            if (u.getUsername().equals(username) && u.validarCredenciales(pass)) {
-                usuarioActual = u;
-                return true;
-            }
-        }
-        return false;
+        return repositorio.buscarPorUsername(username)
+                .filter(u -> u.validarCredenciales(pass))
+                .map(u -> { usuarioActual = u; return true; })
+                .orElse(false);
     }
 
     public void cerrarSesion() {
@@ -35,7 +36,7 @@ public class AutenticacionService {
         cliente.setTelefono(telefono);
         cliente.setTokenDispositivo(tokenDispositivo);
         cliente.modificarPreferenciasNotificacion(canalesPreferidos);
-        usuarios.add(cliente);
+        repositorio.guardar(cliente);
         return cliente;
     }
 
@@ -43,7 +44,7 @@ public class AutenticacionService {
         validarUsername(username);
         validarPassword(pass);
         validarClaveAdministrador(claveAdmin);
-        usuarios.add(new Administrador(username, pass));
+        repositorio.guardar(new Administrador(username, pass));
     }
 
     private void validarUsername(String username) {
@@ -51,10 +52,8 @@ public class AutenticacionService {
             throw new IllegalArgumentException("El nombre de usuario no puede estar vacío.");
         if (username.trim().length() < 4)
             throw new IllegalArgumentException("El nombre de usuario debe tener al menos 4 caracteres.");
-        for (Usuario u : usuarios) {
-            if (u.getUsername().equalsIgnoreCase(username))
-                throw new IllegalArgumentException("El nombre de usuario '" + username + "' ya está en uso.");
-        }
+        if (repositorio.existeUsername(username))
+            throw new IllegalArgumentException("El nombre de usuario '" + username + "' ya está en uso.");
     }
 
     private void validarPassword(String pass) {
