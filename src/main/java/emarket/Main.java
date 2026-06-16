@@ -32,7 +32,6 @@ public class Main {
 
         boolean corriendo = true;
         while (corriendo) {
-            limpiarPantalla();
             AutenticacionService auth = facade.getAutService();
 
             if (auth.estaAutenticado()) {
@@ -126,7 +125,6 @@ public class Main {
     // ══════════════════════════════════════════════════════════════════════════
 
     private static void accionIniciarSesion() {
-        limpiarPantalla();
         cabecera("INICIAR SESIÓN");
         System.out.print("  Usuario    : ");
         String username = scanner.nextLine().trim();
@@ -141,7 +139,6 @@ public class Main {
     }
 
     private static void accionRegistrarCliente() {
-        limpiarPantalla();
         cabecera("REGISTRO DE CLIENTE");
         System.out.print("  Usuario            : ");
         String username = scanner.nextLine().trim();
@@ -183,7 +180,6 @@ public class Main {
     }
 
     private static void accionRegistrarAdmin() {
-        limpiarPantalla();
         cabecera("REGISTRO DE ADMINISTRADOR");
         System.out.print("  Usuario    : ");
         String username = scanner.nextLine().trim();
@@ -202,7 +198,6 @@ public class Main {
     // ══════════════════════════════════════════════════════════════════════════
 
     private static void accionVerCatalogo() {
-        limpiarPantalla();
         cabecera("CATÁLOGO DE LIBROS");
         try {
             imprimirCatalogo(facade.listarCatalogo(), "  ");
@@ -212,7 +207,6 @@ public class Main {
     }
 
     private static void accionBuscarProducto() {
-        limpiarPantalla();
         System.out.print("  ID del producto: ");
         int id = leerEntero();
         if (id < 0) { error("ID inválido."); return; }
@@ -235,7 +229,6 @@ public class Main {
     // ══════════════════════════════════════════════════════════════════════════
 
     private static void accionAgregarAlCarrito() {
-        limpiarPantalla();
         System.out.print("  ID del producto : ");
         int id = leerEntero();
         if (id < 0) { error("ID inválido."); return; }
@@ -255,7 +248,6 @@ public class Main {
     private static void accionVerCarrito(Cliente cliente) {
         boolean enCarrito = true;
         while (enCarrito) {
-            limpiarPantalla();
             cabecera("MI CARRITO");
 
             Carrito carrito = cliente.getCarrito();
@@ -263,7 +255,6 @@ public class Main {
 
             if (items.isEmpty()) {
                 System.out.println("  El carrito está vacío.");
-                pausar();
                 return;
             }
 
@@ -299,7 +290,6 @@ public class Main {
                     } catch (Exception e) {
                         error(e.getMessage());
                     }
-                    pausar();
                     enCarrito = false;
                 }
                 case 0 -> enCarrito = false;
@@ -338,7 +328,6 @@ public class Main {
     }
 
     private static void accionConfirmarCompra() {
-        limpiarPantalla();
         cabecera("CONFIRMAR COMPRA");
         System.out.println("  Métodos de pago:");
         System.out.println("    1. Tarjeta de crédito");
@@ -373,7 +362,6 @@ public class Main {
     // ══════════════════════════════════════════════════════════════════════════
 
     private static void accionMisPedidos() {
-        limpiarPantalla();
         cabecera("MIS PEDIDOS");
 
         try {
@@ -395,7 +383,6 @@ public class Main {
     // ══════════════════════════════════════════════════════════════════════════
 
     private static void accionVerTodosLosPedidos() {
-        limpiarPantalla();
         cabecera("TODOS LOS PEDIDOS");
 
         try {
@@ -415,7 +402,6 @@ public class Main {
     // Avanza el pedido al siguiente estado de la cadena PENDIENTE→PAGADO→ENVIADO→ENTREGADO.
     // La transición (y su validez) la decide el propio estado actual del pedido (State).
     private static void accionActualizarEstadoPedido() {
-        limpiarPantalla();
         System.out.print("  ID del pedido a avanzar: ");
         int id = leerEntero();
         if (id < 0) { error("ID inválido."); return; }
@@ -574,11 +560,6 @@ public class Main {
     // ══════════════════════════════════════════════════════════════════════════
     // HELPERS DE UI
     // ══════════════════════════════════════════════════════════════════════════
-
-    private static void limpiarPantalla() {
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
-    }
 
     private static void cabecera(String titulo) {
         System.out.println("╔══════════════════════════════════╗");
