@@ -18,7 +18,7 @@ classDiagram
     PUSH
   }
 
-  class LibreriaFacade {
+  class EMarketFacade {
     -AutenticacionService autService
     -CatalogoService catService
     -CarritoService carritoService
@@ -187,20 +187,12 @@ classDiagram
 
   class ObservadorNotificacion {
     <<interface>>
-    +actualizar(evento: EventoNotificacion)
-  }
-
-  class EventoNotificacion {
-    -int idPedido
-    -String estadoNombre
-    -Cliente cliente
-    +getIdPedido() int
-    +getEstadoNombre() String
-    +getCliente() Cliente
+    +actualizar(pedido: Pedido)
   }
 
   class ManagerNotificaciones {
-    +actualizar(evento: EventoNotificacion)
+    -EstrategiaNotificacionFactory notificacionFactory
+    +actualizar(pedido: Pedido)
     -enviarACanales(mensaje: String, cliente: Cliente)
   }
   ObservadorNotificacion <|.. ManagerNotificaciones
@@ -261,7 +253,7 @@ classDiagram
   }
 
   class MetodoPagoFactory {
-    +crearMetodoPago(tipo: TipoPago)$ MetodoPago
+    +crearMetodoPago(tipo: TipoPago) MetodoPago
   }
 
   class MetodoPago {
@@ -292,8 +284,7 @@ classDiagram
   MetodoPago <|.. Transferencia
 
   class EstrategiaNotificacionFactory {
-    +crearNotificacion(tipo: CanalNotificacion)$ EstrategiaNotificacion
-    +crearManager()$ ManagerNotificaciones
+    +crearNotificacion(tipo: CanalNotificacion) EstrategiaNotificacion
   }
 
   class EstrategiaNotificacion {
@@ -319,10 +310,10 @@ classDiagram
   EstrategiaNotificacion <|.. EstrategiaNotificacionSMS
   EstrategiaNotificacion <|.. EstrategiaNotificacionPush
 
-  LibreriaFacade --> "1" AutenticacionService : delega auth a
-  LibreriaFacade --> "1" CatalogoService : delega catálogo a
-  LibreriaFacade --> "1" CarritoService : delega carrito a
-  LibreriaFacade --> "1" PedidoService : delega pedidos a
+  EMarketFacade --> "1" AutenticacionService : delega auth a
+  EMarketFacade --> "1" CatalogoService : delega catálogo a
+  EMarketFacade --> "1" CarritoService : delega carrito a
+  EMarketFacade --> "1" PedidoService : delega pedidos a
 
   AutenticacionService --> "*" Usuario : gestiona
   CatalogoService --> "1" ComponenteCatalogo : navega
@@ -331,7 +322,6 @@ classDiagram
   PedidoService --> "1" RepositorioPedidos : persiste en
   PedidoService --> "1" ProcesadorPagos : delega cobro a
   PedidoService --> "1" ManagerNotificaciones : registra como observador
-  PedidoService ..> EstrategiaNotificacionFactory : obtiene manager de
   PedidoService ..> ConfiguracionSistema : consulta impuestos
   PedidoService ..> Carrito : lee ítems de
 
@@ -347,10 +337,7 @@ classDiagram
   ProcesadorPagos ..> MetodoPagoFactory : usa para crear método
   ProcesadorPagos ..> Pedido : opera sobre
   MetodoPagoFactory ..> MetodoPago : crea
-  Pedido ..> EventoNotificacion : crea y pasa
-  ManagerNotificaciones ..> EventoNotificacion : consume
-  ManagerNotificaciones ..> EstrategiaNotificacionFactory : delega creación a
+  ManagerNotificaciones --> "1" EstrategiaNotificacionFactory : utiliza
   ManagerNotificaciones ..> EstrategiaNotificacion : ejecuta
   EstrategiaNotificacionFactory ..> EstrategiaNotificacion : crea
-  EstrategiaNotificacionFactory ..> ManagerNotificaciones : crea
 ```
