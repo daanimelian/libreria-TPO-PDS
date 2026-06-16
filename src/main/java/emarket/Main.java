@@ -325,14 +325,16 @@ public class Main {
         System.out.println("  Métodos de pago:");
         System.out.println("    1. Tarjeta de crédito");
         System.out.println("    2. PayPal");
-        System.out.println("    3. Transferencia bancaria");
+        System.out.println("    3. MercadoPago");
+        System.out.println("    4. Transferencia bancaria");
         System.out.print("  Elegí un método: ");
         int metodo = leerEntero();
 
         TipoPago tipoPago = switch (metodo) {
             case 1 -> TipoPago.TARJETA_CREDITO;
             case 2 -> TipoPago.PAYPAL;
-            case 3 -> TipoPago.TRANSFERENCIA;
+            case 3 -> TipoPago.MERCADO_PAGO;
+            case 4 -> TipoPago.TRANSFERENCIA;
             default -> null;
         };
 
