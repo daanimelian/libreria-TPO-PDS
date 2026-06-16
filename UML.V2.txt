@@ -159,7 +159,6 @@ classDiagram
   }
   ComponenteCatalogo <|.. Categoria
   Categoria "1" o-- "*" ComponenteCatalogo : contiene hijos
-  Categoria --|> Categoria : puede anidarse como subcategoría
 
   class Producto {
     -int id
@@ -418,6 +417,6 @@ classDiagram
   ProcesadorPagos ..> Pedido : opera sobre
   MetodoPagoFactory ..> MetodoPago : crea
   MetodoPagoFactory ..> DatosPago : produce y consume
-  ManagerNotificaciones --> "1" EstrategiaNotificacionFactory : utiliza
+  ManagerNotificaciones ..> EstrategiaNotificacionFactory : utiliza (estático)
   ManagerNotificaciones ..> EstrategiaNotificacion : ejecuta
   EstrategiaNotificacionFactory ..> EstrategiaNotificacion : crea

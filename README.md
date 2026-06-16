@@ -1,62 +1,267 @@
-# libreria-TPO-PDS
+# EMarket — Librería TPO PDS
 
-Sistema de e-commerce de librería implementado en Java, aplicando patrones de diseño
-(Facade, Composite, Observer, State, Strategy, Factory, Singleton, Builder).
+Sistema de e-commerce de librería desarrollado en Java como trabajo práctico obligatorio.
+Implementa un catálogo jerárquico de productos, carrito de compras, gestión de pedidos con
+ciclo de vida completo y notificaciones multicanal, aplicando patrones de diseño GoF.
 
-## Patrones de diseño implementados
+---
 
-| Patrón | Clases participantes |
-|--------|----------------------|
-| **Facade** | `LibreriaFacade` (punto de entrada único) |
-| **Composite** | `ComponenteCatalogo` (interfaz), `Categoria` (nodo), `Producto` (hoja) |
-| **Observer** | `SujetoObservable`, `Pedido` (sujeto), `ObservadorNotificacion`, `ManagerNotificaciones` (observador), `EventoNotificacion` (DTO de evento) |
-| **State** | `EstadoPedido` (interfaz), `Pedido` (contexto), `EstadoPendiente/Pagado/Enviado/Entregado` |
-| **Strategy (pagos)** | `MetodoPago` (interfaz), `TarjetaDeCredito`, `PayPal`, `MercadoPago`, `Transferencia`, `ProcesadorPagos` (contexto) |
-| **Strategy (notificaciones)** | `EstrategiaNotificacion` (interfaz), `EstrategiaNotificacionEmail/SMS/Push` |
-| **Singleton** | `ConfiguracionSistema` (tasa de IVA y parámetros del sistema) |
-| **Builder** | `DatosPago.Builder` |
-| **Factory** | `MetodoPagoFactory`, `EstrategiaNotificacionFactory` |
+## Estructura de paquetes
 
-### Nota sobre el patrón Composite y subcategorías
+```
+emarket/
+├── auth/           Usuario (abstracto), Cliente, Administrador, AutenticacionService
+├── carrito/        Carrito, ItemCarrito, CarritoService
+├── catalogo/       ComponenteCatalogo (interfaz), Categoria, Producto, CatalogoService
+├── config/         ConfiguracionSistema (Singleton)
+├── estado/         EstadoPedido (interfaz), EstadoPendiente, EstadoPagado, EstadoEnviado, EstadoEntregado
+├── facade/         LibreriaFacade
+├── notificacion/   CanalNotificacion, Notificacion, EventoNotificacion,
+│                   SujetoObservable, ObservadorNotificacion, ManagerNotificaciones,
+│                   EstrategiaNotificacion, EstrategiaNotificacionEmail/SMS/Push,
+│                   EstrategiaNotificacionFactory
+├── pago/           TipoPago, DatosPago, MetodoPago, TarjetaDeCredito, PayPal,
+│                   MercadoPago, Transferencia, MetodoPagoFactory, ProcesadorPagos
+├── pedido/         Pedido, ItemPedido, RepositorioPedidos, PedidoService
+├── util/           Validaciones
+└── Main.java       Punto de entrada — UI de consola
+```
 
-`Categoria` implementa `ComponenteCatalogo` y puede contener cualquier `ComponenteCatalogo`
-como hijo, lo que incluye otras `Categoria`. Esto permite anidar subcategorías
-arbitrariamente:
+---
+
+## Patrones de diseño
+
+### Facade — `LibreriaFacade`
+
+Punto de entrada único a todo el sistema. `Main.java` solo interactúa con esta clase;
+los subsistemas (auth, catálogo, carrito, pedidos) quedan encapsulados detrás de ella.
+
+```
+Main → LibreriaFacade → AutenticacionService
+                      → CatalogoService
+                      → CarritoService
+                      → PedidoService
+```
+
+---
+
+### Composite — Catálogo jerárquico
+
+Permite organizar productos en categorías y subcategorías con profundidad arbitraria.
+
+| Rol | Clase |
+|-----|-------|
+| Component | `ComponenteCatalogo` (interfaz) |
+| Composite | `Categoria` — contiene otros `ComponenteCatalogo` (productos u otras categorías) |
+| Leaf | `Producto` — nodo hoja sin hijos |
+
+`Categoria.getPrecio()` y `getStock()` devuelven la **suma recursiva** de todos los hijos
+(valor agregado, no unitario). `Producto` devuelve valores unitarios.
+
+Árbol de demo precargado:
 
 ```
 Catálogo de Libros
 ├── Ficción
-│   ├── Cien años de soledad  (Producto)
-│   ├── El principito         (Producto)
-│   └── Fantasía              ← subcategoría anidada (Categoria dentro de Categoria)
-│       └── El Señor de los Anillos  (Producto)
+│   ├── Cien años de soledad   $2500  stock: 8
+│   ├── El principito          $1800  stock: 12
+│   └── Fantasía                ← subcategoría anidada dentro de Ficción
+│       └── El Señor de los Anillos  $3800  stock: 5
 ├── Técnicos
-│   ├── Clean Code            (Producto)
-│   └── Design Patterns       (Producto)
+│   ├── Clean Code             $4500  stock: 5
+│   └── Design Patterns        $5000  stock: 3
 └── Historia
-    ├── Sapiens               (Producto)
-    └── El arte de la guerra  (Producto)
+    ├── Sapiens                $3200  stock: 10
+    └── El arte de la guerra   $1500  stock: 15
 ```
 
-`getPrecio()` y `getStock()` en `Categoria` devuelven valores **agregados** (suma recursiva
-de todos los hijos). Ver Javadoc en `ComponenteCatalogo` y `Categoria` para la semántica
-completa y la tensión LSP que esto genera en listas mixtas.
+---
 
-### Nota sobre validación de stock en carrito
+### Strategy — Métodos de pago
 
-`CarritoService.modificarCantidad()` valida disponibilidad de stock vía
-`CatalogoService.verificarDisponibilidad()` antes de modificar. `LibreriaFacade`
-realiza la misma validación en su capa (defensa en profundidad).
+Permite seleccionar el método de pago en tiempo de ejecución sin cambiar la lógica del
+procesador.
 
-### Nota sobre IVA
+| Rol | Clase |
+|-----|-------|
+| Strategy (interfaz) | `MetodoPago` — define `pagar(double monto): boolean` |
+| Estrategias concretas | `TarjetaDeCredito`, `PayPal`, `MercadoPago`, `Transferencia` |
+| Contexto | `ProcesadorPagos` — recibe la estrategia creada por `MetodoPagoFactory` y llama `pagar()` |
+| Enum de selección | `TipoPago` — `TARJETA_CREDITO`, `PAYPAL`, `MERCADO_PAGO`, `TRANSFERENCIA` |
 
-`PedidoService.confirmarCompra()` lee la tasa de impuestos exclusivamente desde
-`ConfiguracionSistema.getInstance().getImpuestos()` (Singleton). No hay valores
-de IVA hardcodeados en la lógica de negocio.
+Flujo: el usuario elige un `TipoPago` → `MetodoPagoFactory` crea el `MetodoPago` concreto con
+los `DatosPago` ingresados → `ProcesadorPagos.procesarCobro()` lo ejecuta polimórficamente.
+
+---
+
+### Strategy — Canales de notificación
+
+Mismo patrón aplicado al envío de notificaciones.
+
+| Rol | Clase |
+|-----|-------|
+| Strategy (interfaz) | `EstrategiaNotificacion` — define `enviarMensaje(mensaje, destinatario)` |
+| Estrategias concretas | `EstrategiaNotificacionEmail`, `EstrategiaNotificacionSMS`, `EstrategiaNotificacionPush` |
+| Contexto | `ManagerNotificaciones` — itera los canales preferidos del cliente y despacha |
+| Factory | `EstrategiaNotificacionFactory` — crea la estrategia correcta según `CanalNotificacion` |
+
+Cada cliente puede tener uno o más canales preferidos (`EMAIL`, `SMS`, `PUSH`). Al cambiar
+el estado de un pedido, recibe la notificación por todos sus canales configurados.
+
+---
+
+### Observer — Notificaciones de cambio de estado
+
+Desacopla el `Pedido` del mecanismo de notificación.
+
+| Rol | Clase |
+|-----|-------|
+| Sujeto (interfaz) | `SujetoObservable` |
+| Sujeto concreto | `Pedido` — llama `notificarCambios()` cada vez que su estado cambia |
+| Observador (interfaz) | `ObservadorNotificacion` — define `actualizar(EventoNotificacion)` |
+| Observador concreto | `ManagerNotificaciones` — reacciona al evento y envía notificaciones |
+| DTO de evento | `EventoNotificacion` — transporta `idPedido`, `estadoNombre` y `Cliente` |
+
+`EventoNotificacion` desacopla al observador de `Pedido`: `ObservadorNotificacion` no necesita
+importar la clase `Pedido`.
+
+---
+
+### State — Ciclo de vida del pedido
+
+El comportamiento del pedido cambia según su estado actual sin condicionales en el contexto.
+
+| Rol | Clase |
+|-----|-------|
+| Estado (interfaz) | `EstadoPedido` — define `procesar(Pedido)` y `getNombre()` |
+| Contexto | `Pedido` — delega `avanzarEstado()` al estado actual |
+| Estados | `EstadoPendiente` → `EstadoPagado` → `EstadoEnviado` → `EstadoEntregado` |
+
+Cada estado conoce su sucesor y lo asigna directamente sobre el contexto al procesar.
+`EstadoEntregado.procesar()` lanza una excepción (estado terminal, sin sucesor).
+
+Transición automática al confirmar compra: el pedido nace en `PENDIENTE` y avanza a
+`PAGADO` una vez que el cobro es exitoso, disparando una notificación al cliente.
+
+---
+
+### Singleton — `ConfiguracionSistema`
+
+Instancia única con parámetros globales del sistema. `PedidoService` la consulta para
+obtener la tasa de IVA (21 %) en lugar de hardcodearla.
+
+```java
+double iva = ConfiguracionSistema.getInstance().getImpuestos(); // 0.21
+```
+
+---
+
+### Builder — `DatosPago`
+
+Construcción flexible de los datos de pago. Expone factory methods estáticos por tipo:
+
+```java
+DatosPago.paraTarjeta(numero, titular, fechaExpiracion)
+DatosPago.paraPayPal(email)
+DatosPago.paraMercadoPago(email, accessToken)
+DatosPago.paraTransferencia(cbu, banco)
+```
+
+---
+
+## Flujo completo: Confirmar compra
+
+```
+1. Cliente agrega productos al Carrito
+      CarritoService verifica stock disponible antes de agregar (o modificar cantidad)
+
+2. Cliente confirma compra con un método de pago
+      PedidoService.confirmarCompra()
+        ├── generarItemsPedido()     → snapshot inmutable de nombre/precio al momento de la compra
+        ├── calcular total           → subtotal × (1 + ConfiguracionSistema.getImpuestos())
+        ├── crear Pedido             → estado inicial PENDIENTE (sin observers aún)
+        ├── procesarReduccionStock() → descuenta unidades del stock de cada producto
+        ├── registrarObservadores()  → agrega ManagerNotificaciones al Pedido
+        ├── ProcesadorPagos.procesarCobro()
+        │     └── MetodoPagoFactory crea el MetodoPago concreto → llama pagar()
+        └── pedido.avanzarEstado()
+              └── EstadoPendiente.procesar() → setEstado(EstadoPagado)
+                    └── Pedido.notificarCambios()
+                          └── ManagerNotificaciones.actualizar(EventoNotificacion)
+                                ├── cliente.agregarNotificacion(mensaje)
+                                └── enviarACanales() → EstrategiaNotificacion por cada canal preferido
+
+3. Pedido guardado en RepositorioPedidos, carrito vaciado
+```
+
+---
+
+## Flujo: Cambio de estado por administrador
+
+```
+Admin → LibreriaFacade.actualizarEstadoPedido(id)
+          └── PedidoService.actualizarEstadoPedido(id)
+                └── pedido.avanzarEstado()
+                      └── estadoActual.procesar(pedido) → asigna el estado siguiente
+                            └── Pedido.setEstado() → notificarCambios() → Observer
+```
+
+---
+
+## Validaciones implementadas
+
+| Validación | Dónde |
+|------------|-------|
+| Stock suficiente al agregar al carrito | `CarritoService.agregarProducto()` |
+| Stock suficiente al modificar cantidad | `CarritoService.modificarCantidad()` y `LibreriaFacade` |
+| Carrito no vacío al confirmar compra | `PedidoService.confirmarCompra()` |
+| Credenciales correctas al iniciar sesión | `AutenticacionService` + `Usuario.validarCredenciales()` |
+| Clave secreta para registrar admin | `AutenticacionService.registrarAdministrador()` |
+| Formato de tarjeta (16 dígitos), CBU (22 dígitos), email, fecha de expiración | `Validaciones` (util) |
+| Solo clientes pueden comprar / solo admins pueden cambiar estados | `LibreriaFacade` |
+
+---
+
+## Principios SOLID aplicados
+
+| Principio | Aplicación en el proyecto |
+|-----------|--------------------------|
+| **S — Single Responsibility** | Cada clase tiene una única razón de cambio: `CarritoService` gestiona el carrito, `AutenticacionService` gestiona usuarios, `PedidoService` orquesta pedidos. `confirmarCompra()` fue refactorizado con helpers privados (`generarItemsPedido`, `procesarReduccionStock`, `registrarObservadores`) para que cada fragmento tenga responsabilidad propia. |
+| **O — Open/Closed** | El sistema está abierto a extensión y cerrado a modificación. Agregar un nuevo método de pago implica solo crear una clase que implemente `MetodoPago` y registrarla en `MetodoPagoFactory`, sin tocar `ProcesadorPagos` ni `PedidoService`. Lo mismo aplica a nuevos canales de notificación (`EstrategiaNotificacion`) y nuevos estados (`EstadoPedido`). |
+| **L — Liskov Substitution** | Cualquier `MetodoPago`, `EstadoPedido` o `EstrategiaNotificacion` concreto puede reemplazarse por otro sin romper el código cliente. Se documenta la tensión LSP en `ComponenteCatalogo`: `Categoria.getPrecio()` devuelve un valor agregado mientras que `Producto.getPrecio()` devuelve un valor unitario; este comportamiento está explicitado en los Javadoc para que los clientes de la interfaz no lo asuman implícitamente. |
+| **I — Interface Segregation** | Las interfaces son pequeñas y enfocadas: `MetodoPago` tiene solo `pagar()`, `EstadoPedido` solo `procesar()` y `getNombre()`, `ObservadorNotificacion` solo `actualizar()`, `EstrategiaNotificacion` solo `enviarMensaje()`. Ninguna clase implementadora está forzada a definir métodos que no usa. |
+| **D — Dependency Inversion** | Los módulos de alto nivel dependen de abstracciones, no de implementaciones concretas. `ProcesadorPagos` depende de `MetodoPago` (interfaz), `Pedido` depende de `EstadoPedido` (interfaz), `PedidoService` depende de `ObservadorNotificacion` (interfaz). Las implementaciones concretas se inyectan vía factory o constructor. |
+
+---
+
+## Patrones GRASP aplicados
+
+| Patrón | Aplicación en el proyecto |
+|--------|--------------------------|
+| **Information Expert** | Cada clase opera sobre los datos que posee: `Carrito` calcula su propio total, `Producto` verifica y reduce su propio stock, `Cliente` gestiona sus propias notificaciones y canales preferidos. |
+| **Creator** | La responsabilidad de crear objetos recae en quien tiene la información necesaria: `PedidoService` crea `Pedido` e `ItemPedido` (tiene el carrito y el cliente), `Pedido` crea `EventoNotificacion` (tiene el estado y el cliente), `EstrategiaNotificacionFactory` crea las estrategias concretas. |
+| **Controller** | `LibreriaFacade` actúa como controlador del sistema: recibe todas las operaciones de la UI, valida permisos por rol y delega a los servicios especializados. Centraliza el acceso sin contener lógica de negocio propia. |
+| **Low Coupling** | Las dependencias fluyen a través de interfaces (`MetodoPago`, `EstadoPedido`, `ComponenteCatalogo`, `ObservadorNotificacion`). `EventoNotificacion` evita que `ObservadorNotificacion` dependa directamente de `Pedido`. Los servicios se comunican entre sí solo a través de `LibreriaFacade`. |
+| **High Cohesion** | Cada clase agrupa responsabilidades fuertemente relacionadas. `AutenticacionService` solo maneja autenticación y registro, `CatalogoService` solo navega el árbol de productos, `RepositorioPedidos` solo persiste y consulta pedidos. |
+| **Polymorphism** | El comportamiento variable está encapsulado en jerarquías polimórficas: método de cobro (`MetodoPago`), estado del pedido (`EstadoPedido`), canal de notificación (`EstrategiaNotificacion`), y nodo del catálogo (`ComponenteCatalogo`). Se evitan condicionales tipo `if (tipo == TARJETA)`. |
+| **Pure Fabrication** | `RepositorioPedidos`, `CarritoService` y `ProcesadorPagos` no representan entidades del dominio real, sino clases de servicio creadas para lograr alta cohesión y bajo acoplamiento en operaciones que de otro modo recaerían en clases con demasiadas responsabilidades. |
+| **Protected Variations** | Las interfaces protegen al sistema de los cambios: agregar un nuevo método de pago, un nuevo estado de pedido o un nuevo canal de notificación no impacta en el código existente. `ConfiguracionSistema` protege al resto del sistema de cambios en parámetros como la tasa de IVA. |
+
+---
+
+## Datos de demo (precargados al iniciar)
+
+| Usuario | Contraseña | Rol | Canales de notificación |
+|---------|-----------|-----|------------------------|
+| `juan` | `juan1234` | Cliente | EMAIL, PUSH |
+| `admin` | `admin123` | Administrador | — |
 
 ---
 
 ## UML
+
+El diagrama de clases completo se encuentra en [`UML.V2.txt`](./UML.V2.txt) en formato
+Mermaid. A continuación se incluye embebido:
 
 ```mermaid
 classDiagram
@@ -220,7 +425,6 @@ classDiagram
   }
   ComponenteCatalogo <|.. Categoria
   Categoria "1" o-- "*" ComponenteCatalogo : contiene hijos
-  Categoria --|> Categoria : puede anidarse como subcategoría
 
   class Producto {
     -int id
@@ -422,7 +626,7 @@ classDiagram
   MetodoPago <|.. Transferencia
 
   class EstrategiaNotificacionFactory {
-    +crearNotificacion(tipo: CanalNotificacion) EstrategiaNotificacion
+    +static crearNotificacion(tipo: CanalNotificacion) EstrategiaNotificacion
     +static crearManager() ManagerNotificaciones
   }
 
@@ -479,7 +683,7 @@ classDiagram
   ProcesadorPagos ..> Pedido : opera sobre
   MetodoPagoFactory ..> MetodoPago : crea
   MetodoPagoFactory ..> DatosPago : produce y consume
-  ManagerNotificaciones --> "1" EstrategiaNotificacionFactory : utiliza
+  ManagerNotificaciones ..> EstrategiaNotificacionFactory : utiliza (estático)
   ManagerNotificaciones ..> EstrategiaNotificacion : ejecuta
   EstrategiaNotificacionFactory ..> EstrategiaNotificacion : crea
 ```
