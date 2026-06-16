@@ -6,7 +6,7 @@ import java.util.List;
 
 public class AutenticacionService {
 
-    private List<Usuario> usuarios = new ArrayList<>();
+    private final List<Usuario> usuarios = new ArrayList<>();
     private Usuario usuarioActual;
 
     public boolean iniciarSesion(String username, String pass) {
@@ -23,11 +23,6 @@ public class AutenticacionService {
         usuarioActual = null;
     }
 
-    public void registrarCliente(String username, String pass, String direccion) {
-        usuarios.add(new Cliente(username, pass, direccion));
-    }
-
-    // Versión extendida para registrar un cliente con todos sus datos de contacto
     public Cliente registrarClienteCompleto(String username, String pass, String direccion,
                                              String email, String telefono, String tokenDispositivo,
                                              List<CanalNotificacion> canalesPreferidos) {
@@ -54,6 +49,6 @@ public class AutenticacionService {
     }
 
     public boolean estaAutenticado() {
-        return usuarioActual != null;
+        return usuarioActual == null;
     }
 }

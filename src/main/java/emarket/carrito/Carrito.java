@@ -6,7 +6,7 @@ import java.util.List;
 
 public class Carrito {
 
-    private List<ItemCarrito> items = new ArrayList<>();
+    private final List<ItemCarrito> items = new ArrayList<>();
 
     public void agregarProducto(Producto p, int cantidad) {
         for (ItemCarrito item : items) {

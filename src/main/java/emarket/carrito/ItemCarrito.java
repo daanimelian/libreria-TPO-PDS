@@ -4,7 +4,7 @@ import emarket.catalogo.Producto;
 
 public class ItemCarrito {
 
-    private Producto producto;
+    private final Producto producto;
     private int cantidad;
 
     public ItemCarrito(Producto producto, int cantidad) {
