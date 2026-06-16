@@ -4,6 +4,8 @@ import emarket.auth.Administrador;
 import emarket.auth.AutenticacionService;
 import emarket.auth.Cliente;
 import emarket.carrito.CarritoService;
+import emarket.carrito.ItemCarrito;
+import emarket.catalogo.Categoria;
 import emarket.catalogo.CatalogoService;
 import emarket.catalogo.ComponenteCatalogo;
 import emarket.catalogo.Producto;
@@ -11,6 +13,7 @@ import emarket.notificacion.CanalNotificacion;
 import emarket.pago.DatosPago;
 import emarket.pago.MetodoPagoFactory;
 import emarket.pago.TipoPago;
+import java.util.Arrays;
 import java.util.Scanner;
 import emarket.pedido.Pedido;
 import emarket.pedido.PedidoService;
@@ -157,15 +160,57 @@ public class LibreriaFacade {
         return pedidoService.listarTodosLosPedidos();
     }
 
-    // ── Acceso a servicios (para setup de demo) ───────────────────────────────
+    // ── Estado de sesión ─────────────────────────────────────────────────────
 
-    public CatalogoService getCatService() { return catService; }
-    public AutenticacionService getAutService() { return autService; }
+    public boolean estaAutenticado()   { return autService.estaAutenticado(); }
+    public boolean esCliente()         { return autService.getClienteActual() != null; }
+    public String getUsernameActual()  { return autService.getUsuarioActual().getUsername(); }
+
+    // ── Carrito (consulta) ───────────────────────────────────────────────────
+
+    public List<ItemCarrito> getItemsCarrito() {
+        Cliente cliente = autService.getClienteActual();
+        if (cliente == null) throw new IllegalStateException("Solo los clientes tienen carrito");
+        return cliente.getCarrito().getItems();
+    }
+
+    public double getTotalCarrito() {
+        Cliente cliente = autService.getClienteActual();
+        if (cliente == null) throw new IllegalStateException("Solo los clientes tienen carrito");
+        return cliente.getCarrito().calcularTotal();
+    }
+
+    // ── Precarga de datos de demo ────────────────────────────────────────────
+
+    public void precargarDatos() {
+        Categoria raiz = new Categoria("Catálogo de Libros");
+        catService.setCatalogoRaiz(raiz);
+
+        Categoria ficcion = catService.crearCategoria("Ficción", raiz);
+        catService.agregarProducto(ficcion, new Producto(1, "Cien años de soledad",  2500.0,  8));
+        catService.agregarProducto(ficcion, new Producto(2, "El principito",         1800.0, 12));
+        catService.agregarProducto(ficcion, new Producto(3, "1984",                  2200.0,  6));
+
+        Categoria tecnicos = catService.crearCategoria("Técnicos", raiz);
+        catService.agregarProducto(tecnicos, new Producto(4, "Clean Code",           4500.0,  5));
+        catService.agregarProducto(tecnicos, new Producto(5, "Design Patterns",      5000.0,  3));
+
+        Categoria historia = catService.crearCategoria("Historia", raiz);
+        catService.agregarProducto(historia, new Producto(6, "Sapiens",              3200.0, 10));
+        catService.agregarProducto(historia, new Producto(7, "El arte de la guerra", 1500.0, 15));
+
+        registrarClienteCompleto(
+                "juan", "1234", "Av. Corrientes 1234, CABA",
+                "juan@email.com", "1155551234", "TOKEN_JUAN",
+                Arrays.asList(CanalNotificacion.EMAIL, CanalNotificacion.PUSH));
+
+        registrarAdministrador("admin", "admin123");
+    }
 
     // ── Privado ──────────────────────────────────────────────────────────────
 
     private void verificarAutenticacion() {
-        if (autService.estaAutenticado()) {
+        if (!autService.estaAutenticado()) {
             throw new IllegalStateException("Debe iniciar sesión primero");
         }
     }

@@ -60,6 +60,6 @@ public class AutenticacionService {
     }
 
     public boolean estaAutenticado() {
-        return usuarioActual == null;
+        return usuarioActual != null;
     }
 }

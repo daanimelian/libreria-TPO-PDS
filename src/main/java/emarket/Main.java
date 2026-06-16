@@ -1,11 +1,7 @@
 package emarket;
 
-import emarket.auth.AutenticacionService;
-import emarket.auth.Cliente;
-import emarket.carrito.Carrito;
 import emarket.carrito.ItemCarrito;
 import emarket.catalogo.Categoria;
-import emarket.catalogo.CatalogoService;
 import emarket.catalogo.ComponenteCatalogo;
 import emarket.catalogo.Producto;
 import emarket.facade.LibreriaFacade;
@@ -15,7 +11,6 @@ import emarket.pago.TipoPago;
 import emarket.pedido.ItemPedido;
 import emarket.pedido.Pedido;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -28,18 +23,16 @@ public class Main {
         facade  = new LibreriaFacade();
         scanner = new Scanner(System.in);
 
-        precargarDatos();
+        facade.precargarDatos();
 
         boolean corriendo = true;
         while (corriendo) {
-            AutenticacionService auth = facade.getAutService();
-
-            if (auth.estaAutenticado()) {
+            if (!facade.estaAutenticado()) {
                 corriendo = menuSinSesion();
-            } else if (auth.getClienteActual() != null) {
-                corriendo = menuCliente(auth.getClienteActual());
+            } else if (facade.esCliente()) {
+                corriendo = menuCliente();
             } else {
-                corriendo = menuAdmin(auth.getUsuarioActual().getUsername());
+                corriendo = menuAdmin(facade.getUsernameActual());
             }
         }
 
@@ -70,8 +63,8 @@ public class Main {
         return true;
     }
 
-    private static boolean menuCliente(Cliente cliente) {
-        cabecera("EMARKET — " + cliente.getUsername() + " [CLIENTE]");
+    private static boolean menuCliente() {
+        cabecera("EMARKET — " + facade.getUsernameActual() + " [CLIENTE]");
         System.out.println("  1. Ver catálogo");
         System.out.println("  2. Buscar producto por ID");
         System.out.println("  3. Agregar producto al carrito");
@@ -86,7 +79,7 @@ public class Main {
             case 1 -> accionVerCatalogo();
             case 2 -> accionBuscarProducto();
             case 3 -> accionAgregarAlCarrito();
-            case 4 -> accionVerCarrito(cliente);
+            case 4 -> accionVerCarrito();
             case 5 -> accionConfirmarCompra();
             case 6 -> accionMisPedidos();
             case 7 -> { facade.cerrarSesion(); ok("Sesión cerrada."); }
@@ -245,13 +238,12 @@ public class Main {
         }
     }
 
-    private static void accionVerCarrito(Cliente cliente) {
+    private static void accionVerCarrito() {
         boolean enCarrito = true;
         while (enCarrito) {
             cabecera("MI CARRITO");
 
-            Carrito carrito = cliente.getCarrito();
-            List<ItemCarrito> items = carrito.getItems();
+            List<ItemCarrito> items = facade.getItemsCarrito();
 
             if (items.isEmpty()) {
                 System.out.println("  El carrito está vacío.");
@@ -269,8 +261,9 @@ public class Main {
                         item.getSubtotal());
             }
             separador();
-            System.out.printf("  %-28s %10s   $%9.2f%n", "SUBTOTAL", "", carrito.calcularTotal());
-            double total = carrito.calcularTotal() * (1 + 0.21);
+            double subtotal = facade.getTotalCarrito();
+            System.out.printf("  %-28s %10s   $%9.2f%n", "SUBTOTAL", "", subtotal);
+            double total = subtotal * (1 + 0.21);
             System.out.printf("  %-28s %10s   $%9.2f%n", "TOTAL (c/ IVA 21%)", "", total);
             System.out.println();
 
@@ -412,38 +405,6 @@ public class Main {
         } catch (IllegalStateException e) {
             error(e.getMessage());
         }
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // PRECARGA DE DATOS DE EJEMPLO
-    // ══════════════════════════════════════════════════════════════════════════
-
-    private static void precargarDatos() {
-        CatalogoService cat = facade.getCatService();
-
-        Categoria raiz = new Categoria("Catálogo de Libros");
-        cat.setCatalogoRaiz(raiz);
-
-        Categoria ficcion = cat.crearCategoria("Ficción", raiz);
-        cat.agregarProducto(ficcion, new Producto(1, "Cien años de soledad",  2500.0,  8));
-        cat.agregarProducto(ficcion, new Producto(2, "El principito",         1800.0, 12));
-        cat.agregarProducto(ficcion, new Producto(3, "1984",                  2200.0,  6));
-
-        Categoria tecnicos = cat.crearCategoria("Técnicos", raiz);
-        cat.agregarProducto(tecnicos, new Producto(4, "Clean Code",           4500.0,  5));
-        cat.agregarProducto(tecnicos, new Producto(5, "Design Patterns",      5000.0,  3));
-
-        Categoria historia = cat.crearCategoria("Historia", raiz);
-        cat.agregarProducto(historia, new Producto(6, "Sapiens",              3200.0, 10));
-        cat.agregarProducto(historia, new Producto(7, "El arte de la guerra", 1500.0, 15));
-
-        // Usuarios precargados para la demo
-        facade.registrarClienteCompleto(
-                "juan", "1234", "Av. Corrientes 1234, CABA",
-                "juan@email.com", "1155551234", "TOKEN_JUAN",
-                Arrays.asList(CanalNotificacion.EMAIL, CanalNotificacion.PUSH));
-
-        facade.registrarAdministrador("admin", "admin123");
     }
 
     // ══════════════════════════════════════════════════════════════════════════
