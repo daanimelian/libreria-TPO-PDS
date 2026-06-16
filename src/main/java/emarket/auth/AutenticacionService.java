@@ -26,6 +26,7 @@ public class AutenticacionService {
     public Cliente registrarClienteCompleto(String username, String pass, String direccion,
                                              String email, String telefono, String tokenDispositivo,
                                              List<CanalNotificacion> canalesPreferidos) {
+        validarUsername(username);
         Cliente cliente = new Cliente(username, pass, direccion);
         cliente.setEmail(email);
         cliente.setTelefono(telefono);
@@ -36,7 +37,17 @@ public class AutenticacionService {
     }
 
     public void registrarAdministrador(String username, String pass) {
+        validarUsername(username);
         usuarios.add(new Administrador(username, pass));
+    }
+
+    private void validarUsername(String username) {
+        if (username == null || username.isBlank())
+            throw new IllegalArgumentException("El nombre de usuario no puede estar vacío");
+        for (Usuario u : usuarios) {
+            if (u.getUsername().equalsIgnoreCase(username))
+                throw new IllegalArgumentException("El nombre de usuario '" + username + "' ya está en uso");
+        }
     }
 
     public Cliente getClienteActual() {
