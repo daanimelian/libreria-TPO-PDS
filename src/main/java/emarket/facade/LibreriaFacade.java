@@ -199,11 +199,11 @@ public class LibreriaFacade {
         catService.agregarProducto(historia, new Producto(7, "El arte de la guerra", 1500.0, 15));
 
         registrarClienteCompleto(
-                "juan", "1234", "Av. Corrientes 1234, CABA",
+                "juan", "juan1234", "Av. Corrientes 1234, CABA",
                 "juan@email.com", "1155551234", "TOKEN_JUAN",
                 Arrays.asList(CanalNotificacion.EMAIL, CanalNotificacion.PUSH));
 
-        registrarAdministrador("admin", "admin123");
+        registrarAdministrador("admin", "admin123", "admin123");
     }
 
     // ── Privado ──────────────────────────────────────────────────────────────

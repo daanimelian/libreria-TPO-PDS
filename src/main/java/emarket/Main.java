@@ -174,12 +174,14 @@ public class Main {
 
     private static void accionRegistrarAdmin() {
         cabecera("REGISTRO DE ADMINISTRADOR");
-        System.out.print("  Usuario    : ");
+        System.out.print("  Usuario          : ");
         String username = scanner.nextLine().trim();
         String pass = pedirPasswordConConfirmacion();
+        System.out.print("  Clave de admin   : ");
+        String claveAdmin = scanner.nextLine().trim();
 
         try {
-            facade.registrarAdministrador(username, pass);
+            facade.registrarAdministrador(username, pass, claveAdmin);
             ok("Administrador '" + username + "' registrado correctamente.");
         } catch (Exception e) {
             error("Error al registrar: " + e.getMessage());
