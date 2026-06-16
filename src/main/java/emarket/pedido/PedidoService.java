@@ -61,7 +61,7 @@ public class PedidoService {
         }
 
         // Pago exitoso: el pedido avanza de PENDIENTE a PAGADO (State + Observer)
-        pedido.getEstado().procesar(pedido);
+        pedido.avanzarEstado();
 
         repoPedidos.guardar(pedido);
         carrito.vaciarCarrito();
@@ -76,7 +76,7 @@ public class PedidoService {
         if (pedido == null) {
             throw new IllegalStateException("Pedido no encontrado: #" + idPedido);
         }
-        pedido.getEstado().procesar(pedido);
+        pedido.avanzarEstado();
         return pedido;
     }
 
