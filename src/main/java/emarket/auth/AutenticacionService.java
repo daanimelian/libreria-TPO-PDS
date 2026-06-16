@@ -6,9 +6,8 @@ import java.util.List;
 
 public class AutenticacionService {
 
-    private List<Usuario> usuarios = new ArrayList<>();
+    private final List<Usuario> usuarios = new ArrayList<>();
     private Usuario usuarioActual;
-    private static final String CLAVE_ADMIN = "admin123";
 
     public boolean iniciarSesion(String username, String pass) {
         for (Usuario u : usuarios) {
@@ -24,17 +23,10 @@ public class AutenticacionService {
         usuarioActual = null;
     }
 
-    public void registrarCliente(String username, String pass, String direccion) {
-        validarUsername(username);
-        validarPassword(pass);
-        verificarDisponibilidadUsername(username);
-        usuarios.add(new Cliente(username, pass,direccion));
-    }
-
-    // Versión extendida para registrar un cliente con todos sus datos de contacto
     public Cliente registrarClienteCompleto(String username, String pass, String direccion,
                                              String email, String telefono, String tokenDispositivo,
                                              List<CanalNotificacion> canalesPreferidos) {
+        validarUsername(username);
         Cliente cliente = new Cliente(username, pass, direccion);
         cliente.setEmail(email);
         cliente.setTelefono(telefono);
@@ -44,12 +36,18 @@ public class AutenticacionService {
         return cliente;
     }
 
-    public void registrarAdministrador(String username, String pass, String claveAdmin) {
+    public void registrarAdministrador(String username, String pass) {
         validarUsername(username);
-        validarPassword(pass);
-        verificarDisponibilidadUsername(username);
-        validarClaveAdministrador(claveAdmin);
-        usuarios.add(new Administrador(username,pass));
+        usuarios.add(new Administrador(username, pass));
+    }
+
+    private void validarUsername(String username) {
+        if (username == null || username.isBlank())
+            throw new IllegalArgumentException("El nombre de usuario no puede estar vacío");
+        for (Usuario u : usuarios) {
+            if (u.getUsername().equalsIgnoreCase(username))
+                throw new IllegalArgumentException("El nombre de usuario '" + username + "' ya está en uso");
+        }
     }
 
     public Cliente getClienteActual() {
@@ -63,59 +61,5 @@ public class AutenticacionService {
 
     public boolean estaAutenticado() {
         return usuarioActual != null;
-    }
-
-    private void verificarDisponibilidadUsername(String username) {
-        for (Usuario u : usuarios) {
-            if (u.getUsername().equalsIgnoreCase(username.trim())) {
-                throw new IllegalArgumentException(
-                    "El usuario ya existe."
-                );
-            }
-        }
-    }
-
-    private void validarUsername(String username) {
-
-        if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException(
-                "El usuario no puede estar vacío."
-            );
-        }
-
-        if (username.trim().length() < 4) {
-            throw new IllegalArgumentException(
-                "El usuario debe tener al menos 4 caracteres."
-            );
-        }
-    }
-
-    private void validarPassword(String pass) {
-
-        if (pass == null || pass.isBlank()) {
-            throw new IllegalArgumentException(
-                "La contraseña no puede estar vacía."
-            );
-        }
-
-        if (pass.length() < 8) {
-            throw new IllegalArgumentException(
-                "La contraseña debe tener al menos 8 caracteres."
-            );
-        }
-
-        if (!pass.matches(".*\\d.*")) {
-            throw new IllegalArgumentException(
-                "La contraseña debe contener al menos un número."
-            );
-        }
-    }
-
-    private void validarClaveAdministrador(String clave) {
-        if (!CLAVE_ADMIN.equals(clave)) {
-            throw new IllegalArgumentException(
-                "Clave de administrador incorrecta."
-            );
-        }
     }
 }

@@ -4,7 +4,6 @@ import emarket.auth.Cliente;
 import emarket.carrito.Carrito;
 import emarket.carrito.ItemCarrito;
 import emarket.config.ConfiguracionSistema;
-import emarket.estado.EstadoPedido;
 import emarket.estado.EstadoPendiente;
 import emarket.notificacion.EstrategiaNotificacionFactory;
 import emarket.notificacion.ManagerNotificaciones;
@@ -16,9 +15,9 @@ import java.util.List;
 
 public class PedidoService {
 
-    private RepositorioPedidos repoPedidos;
-    private ProcesadorPagos procesadorPagos;
-    private ManagerNotificaciones managerNotificaciones;
+    private final RepositorioPedidos repoPedidos;
+    private final ProcesadorPagos procesadorPagos;
+    private final ManagerNotificaciones managerNotificaciones;
 
     public PedidoService() {
         this.repoPedidos = new RepositorioPedidos();
@@ -51,9 +50,9 @@ public class PedidoService {
         System.out.printf("  Pedido #%d creado | Subtotal: $%.2f | IVA (%.0f%%): $%.2f | Total: $%.2f%n",
                 id, subtotal, impuestos * 100, total - subtotal, total);
 
-        // Registrar observer y setear estado inicial (dispara notificación PENDIENTE)
-        registrarObservadores(pedido);
+        // Estado inicial ANTES de registrar observers → no dispara notificación de PENDIENTE
         pedido.setEstado(new EstadoPendiente());
+        registrarObservadores(pedido);
 
         // Procesar el cobro
         boolean cobrado = procesadorPagos.procesarCobro(pedido, tipoPago, datosPago);
@@ -61,22 +60,24 @@ public class PedidoService {
             throw new IllegalStateException("El pago fue rechazado. Verificá los datos ingresados.");
         }
 
+        // Pago exitoso: el pedido avanza de PENDIENTE a PAGADO (State + Observer)
+        pedido.avanzarEstado();
+
         repoPedidos.guardar(pedido);
         carrito.vaciarCarrito();
 
         return pedido;
     }
 
-    public void actualizarEstadoPedido(int idPedido, EstadoPedido nuevoEstado) {
+    // Avanza el pedido al siguiente estado de la cadena PENDIENTE→PAGADO→ENVIADO→ENTREGADO,
+    // delegando en el estado actual (State) la transición y la validación de si es posible.
+    public Pedido actualizarEstadoPedido(int idPedido) {
         Pedido pedido = repoPedidos.buscarPorId(idPedido);
         if (pedido == null) {
             throw new IllegalStateException("Pedido no encontrado: #" + idPedido);
         }
-        pedido.setEstado(nuevoEstado);
-    }
-
-    public Pedido buscarPedido(int id) {
-        return repoPedidos.buscarPorId(id);
+        pedido.avanzarEstado();
+        return pedido;
     }
 
     public List<Pedido> listarPedidosPorCliente(Cliente cliente) {

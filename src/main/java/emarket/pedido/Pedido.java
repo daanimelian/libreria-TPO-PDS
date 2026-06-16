@@ -11,11 +11,11 @@ import java.util.List;
 // Observer sujeto + State: el pedido notifica cambios de estado a sus observadores
 public class Pedido implements SujetoObservable {
 
-    private int id;
+    private final int id;
     private EstadoPedido estadoActual;
-    private List<ObservadorNotificacion> observadores = new ArrayList<>();
-    private List<ItemPedido> items;
-    private Cliente cliente;
+    private final List<ObservadorNotificacion> observadores = new ArrayList<>();
+    private final List<ItemPedido> items;
+    private final Cliente cliente;
     private double total;
 
     public Pedido(int id, Cliente cliente, List<ItemPedido> items, double total) {
@@ -32,6 +32,10 @@ public class Pedido implements SujetoObservable {
     }
 
     public EstadoPedido getEstado() { return estadoActual; }
+
+    public void avanzarEstado() {
+        estadoActual.procesar(this);
+    }
 
     @Override
     public void agregarObservador(ObservadorNotificacion o) {

@@ -10,6 +10,10 @@ public class DatosPago {
     // PayPal
     private final String emailPayPal;
 
+    // MercadoPago
+    private final String emailMercadoPago;
+    private final String accessToken;
+
     // Transferencia
     private final String cbu;
     private final String banco;
@@ -19,6 +23,8 @@ public class DatosPago {
         this.titular          = b.titular;
         this.fechaExpiracion  = b.fechaExpiracion;
         this.emailPayPal      = b.emailPayPal;
+        this.emailMercadoPago = b.emailMercadoPago;
+        this.accessToken      = b.accessToken;
         this.cbu              = b.cbu;
         this.banco            = b.banco;
     }
@@ -31,6 +37,10 @@ public class DatosPago {
         return new Builder().emailPayPal(email).build();
     }
 
+    public static DatosPago paraMercadoPago(String email, String accessToken) {
+        return new Builder().emailMercadoPago(email).accessToken(accessToken).build();
+    }
+
     public static DatosPago paraTransferencia(String cbu, String banco) {
         return new Builder().cbu(cbu).banco(banco).build();
     }
@@ -38,19 +48,23 @@ public class DatosPago {
     public String getNumeroTarjeta()   { return numeroTarjeta; }
     public String getTitular()         { return titular; }
     public String getFechaExpiracion() { return fechaExpiracion; }
-    public String getEmailPayPal()     { return emailPayPal; }
-    public String getCbu()             { return cbu; }
+    public String getEmailPayPal()      { return emailPayPal; }
+    public String getEmailMercadoPago() { return emailMercadoPago; }
+    public String getAccessToken()      { return accessToken; }
+    public String getCbu()              { return cbu; }
     public String getBanco()           { return banco; }
 
     private static class Builder {
-        String numeroTarjeta, titular, fechaExpiracion, emailPayPal, cbu, banco;
+        String numeroTarjeta, titular, fechaExpiracion, emailPayPal, emailMercadoPago, accessToken, cbu, banco;
 
-        Builder numeroTarjeta(String v)   { this.numeroTarjeta   = v; return this; }
-        Builder titular(String v)         { this.titular         = v; return this; }
-        Builder fechaExpiracion(String v) { this.fechaExpiracion = v; return this; }
-        Builder emailPayPal(String v)     { this.emailPayPal     = v; return this; }
-        Builder cbu(String v)             { this.cbu             = v; return this; }
-        Builder banco(String v)           { this.banco           = v; return this; }
+        Builder numeroTarjeta(String v)    { this.numeroTarjeta    = v; return this; }
+        Builder titular(String v)          { this.titular          = v; return this; }
+        Builder fechaExpiracion(String v)  { this.fechaExpiracion  = v; return this; }
+        Builder emailPayPal(String v)      { this.emailPayPal      = v; return this; }
+        Builder emailMercadoPago(String v) { this.emailMercadoPago = v; return this; }
+        Builder accessToken(String v)      { this.accessToken      = v; return this; }
+        Builder cbu(String v)              { this.cbu              = v; return this; }
+        Builder banco(String v)            { this.banco            = v; return this; }
 
         DatosPago build() { return new DatosPago(this); }
     }

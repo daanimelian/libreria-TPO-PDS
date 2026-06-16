@@ -8,16 +8,20 @@ public class ManagerNotificaciones implements ObservadorNotificacion {
     @Override
     public void actualizar(EventoNotificacion evento) {
         Cliente cliente = evento.getCliente();
-        String mensaje = "Tu pedido #" + evento.getIdPedido()
-                + " cambió a estado: " + evento.getEstadoNombre();
-        enviarACanales(mensaje, cliente);
+        String mensaje = buildMensaje(evento);
+        cliente.agregarNotificacion(mensaje);
+        enviarACanales(cliente, mensaje);
     }
 
-    private void enviarACanales(String mensaje, Cliente cliente) {
+    private String buildMensaje(EventoNotificacion evento) {
+        return "Tu pedido #" + evento.getIdPedido()
+                + " cambió a estado: " + evento.getEstadoNombre();
+    }
+
+    private void enviarACanales(Cliente cliente, String mensaje) {
         for (CanalNotificacion canal : cliente.getCanalesPreferidos()) {
             EstrategiaNotificacion estrategia = EstrategiaNotificacionFactory.crearNotificacion(canal);
-            String destinatario = cliente.getDestinatarioPara(canal);
-            estrategia.enviarMensaje(mensaje, destinatario);
+            estrategia.enviarMensaje(mensaje, cliente.getDestinatarioPara(canal));
         }
     }
 }

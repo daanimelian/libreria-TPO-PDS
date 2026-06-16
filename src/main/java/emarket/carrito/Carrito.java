@@ -6,7 +6,7 @@ import java.util.List;
 
 public class Carrito {
 
-    private List<ItemCarrito> items = new ArrayList<>();
+    private final List<ItemCarrito> items = new ArrayList<>();
 
     public void agregarProducto(Producto p, int cantidad) {
         for (ItemCarrito item : items) {
@@ -19,7 +19,9 @@ public class Carrito {
     }
 
     public void eliminarProducto(Producto p) {
-        items.removeIf(item -> item.getProducto().getId() == p.getId());
+        boolean removed = items.removeIf(item -> item.getProducto().getId() == p.getId());
+        if (!removed)
+            throw new IllegalStateException("El producto '" + p.getNombre() + "' no está en el carrito.");
     }
 
     public void modificarCantidad(Producto p, int cantidad) {
@@ -29,6 +31,7 @@ public class Carrito {
                 return;
             }
         }
+        throw new IllegalStateException("El producto '" + p.getNombre() + "' no está en el carrito.");
     }
 
     public double calcularTotal() {

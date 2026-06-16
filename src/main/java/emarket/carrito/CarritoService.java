@@ -6,7 +6,7 @@ import emarket.catalogo.Producto;
 
 public class CarritoService {
 
-    private CatalogoService catService;
+    private final CatalogoService catService;
 
     public CarritoService(CatalogoService catService) {
         this.catService = catService;
@@ -29,10 +29,6 @@ public class CarritoService {
 
     public void modificarCantidad(Cliente cliente, Producto producto, int cantidad) {
         cliente.getCarrito().modificarCantidad(producto, cantidad);
-    }
-
-    public Carrito getCarrito(Cliente cliente) {
-        return cliente.getCarrito();
     }
 
     public void vaciarCarrito(Cliente cliente) {

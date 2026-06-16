@@ -1,6 +1,30 @@
 package emarket.pago;
 
+import emarket.util.Validaciones;
+import java.util.Scanner;
+
 public class Transferencia implements MetodoPago {
+
+    public static DatosPago pedirDatos(Scanner sc) {
+        String cbu, banco;
+
+        do {
+            System.out.print("  CBU (22 dígitos) : ");
+            cbu = sc.nextLine().trim();
+            if (!Validaciones.esCbuValido(cbu))
+                System.out.println("  ✗ El CBU debe tener exactamente 22 dígitos numéricos.");
+        } while (!Validaciones.esCbuValido(cbu));
+
+        do {
+            System.out.print("  Banco            : ");
+            banco = sc.nextLine().trim();
+            if (banco.isBlank())
+                System.out.println("  ✗ El nombre del banco no puede estar vacío.");
+        } while (banco.isBlank());
+
+        return DatosPago.paraTransferencia(cbu, banco);
+    }
+
 
     private final String cbu;
     private final String banco;
@@ -19,7 +43,7 @@ public class Transferencia implements MetodoPago {
     }
 
     private boolean validar() {
-        if (cbu == null || !cbu.matches("\\d{22}")) {
+        if (!Validaciones.esCbuValido(cbu)) {
             System.out.println("  ✗ CBU inválido (debe tener exactamente 22 dígitos).");
             return false;
         }
