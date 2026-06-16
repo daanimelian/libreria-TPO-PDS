@@ -188,7 +188,11 @@ public class LibreriaFacade {
         Categoria ficcion = catService.crearCategoria("Ficción", raiz);
         catService.agregarProducto(ficcion, new Producto(1, "Cien años de soledad",  2500.0,  8));
         catService.agregarProducto(ficcion, new Producto(2, "El principito",         1800.0, 12));
-        catService.agregarProducto(ficcion, new Producto(3, "1984",                  2200.0,  6));
+
+        // Subcategoría anidada dentro de Ficción — demuestra el patrón Composite
+        // con más de un nivel: Catálogo → Ficción → Fantasía → Producto
+        Categoria fantasia = catService.crearCategoria("Fantasía", ficcion);
+        catService.agregarProducto(fantasia, new Producto(3, "El Señor de los Anillos", 3800.0, 5));
 
         Categoria tecnicos = catService.crearCategoria("Técnicos", raiz);
         catService.agregarProducto(tecnicos, new Producto(4, "Clean Code",           4500.0,  5));

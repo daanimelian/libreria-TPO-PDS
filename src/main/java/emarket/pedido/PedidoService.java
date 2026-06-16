@@ -42,10 +42,7 @@ public class PedidoService {
         int id = repoPedidos.getProximoId();
         Pedido pedido = new Pedido(id, cliente, items, total);
 
-        // Reducir stock de cada producto antes de registrar el pedido
-        for (ItemCarrito item : carrito.getItems()) {
-            item.getProducto().reducirStock(item.getCantidad());
-        }
+        procesarReduccionStock(carrito);
 
         System.out.printf("  Pedido #%d creado | Subtotal: $%.2f | IVA (%.0f%%): $%.2f | Total: $%.2f%n",
                 id, subtotal, impuestos * 100, total - subtotal, total);
@@ -90,6 +87,12 @@ public class PedidoService {
 
     private void registrarObservadores(Pedido pedido) {
         pedido.agregarObservador(managerNotificaciones);
+    }
+
+    private void procesarReduccionStock(Carrito carrito) {
+        for (ItemCarrito item : carrito.getItems()) {
+            item.getProducto().reducirStock(item.getCantidad());
+        }
     }
 
     private List<ItemPedido> generarItemsPedido(Carrito carrito) {
