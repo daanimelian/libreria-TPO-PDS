@@ -1,12 +1,20 @@
 package emarket.pago;
 
+import emarket.util.Validaciones;
 import java.util.Scanner;
 
 public class PayPal implements MetodoPago {
 
     public static DatosPago pedirDatos(Scanner sc) {
-        System.out.print("  Email de tu cuenta PayPal : ");
-        return DatosPago.paraPayPal(sc.nextLine().trim());
+        String email;
+        do {
+            System.out.print("  Email de tu cuenta PayPal : ");
+            email = sc.nextLine().trim();
+            if (!Validaciones.esEmailValido(email))
+                System.out.println("  ✗ Email inválido. Ejemplo: nombre@dominio.com");
+            else break;
+        } while (true);
+        return DatosPago.paraPayPal(email);
     }
 
 
@@ -24,12 +32,7 @@ public class PayPal implements MetodoPago {
     }
 
     private boolean validar() {
-        if (email == null || email.isBlank()) {
-            System.out.println("  ✗ El email de PayPal no puede estar vacío.");
-            return false;
-        }
-        int at = email.indexOf('@');
-        if (at <= 0 || at >= email.length() - 1) {
+        if (!Validaciones.esEmailValido(email)) {
             System.out.println("  ✗ Email de PayPal inválido.");
             return false;
         }

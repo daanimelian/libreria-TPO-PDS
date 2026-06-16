@@ -1,16 +1,37 @@
 package emarket.pago;
 
+import emarket.util.Validaciones;
 import java.util.Scanner;
 
 public class TarjetaDeCredito implements MetodoPago {
 
     public static DatosPago pedirDatos(Scanner sc) {
-        System.out.print("  Número de tarjeta (16 dígitos) : ");
-        String numero = sc.nextLine().trim();
-        System.out.print("  Nombre del titular             : ");
-        String titular = sc.nextLine().trim();
-        System.out.print("  Fecha de expiración (MM/AA)    : ");
-        String fecha = sc.nextLine().trim();
+        String numero, titular, fecha;
+
+        do {
+            System.out.print("  Número de tarjeta (16 dígitos) : ");
+            numero = Validaciones.normalizarNumeroTarjeta(sc.nextLine().trim());
+            if (Validaciones.esNumeroTarjetaValido(numero))
+                System.out.println("  ✗ Debe tener exactamente 16 dígitos numéricos.");
+        } while (Validaciones.esNumeroTarjetaValido(numero));
+
+        do {
+            System.out.print("  Nombre del titular             : ");
+            titular = sc.nextLine().trim();
+            if (titular.isBlank())
+                System.out.println("  ✗ El nombre no puede estar vacío.");
+        } while (titular.isBlank());
+
+        do {
+            System.out.print("  Fecha de expiración (MM/AA)    : ");
+            fecha = sc.nextLine().trim();
+            if (Validaciones.esFechaExpiracioValida(fecha))
+                System.out.println("  ✗ Formato inválido. Ejemplo: 12/27");
+            else if (Validaciones.estaVencida(fecha))
+                System.out.println("  ✗ La tarjeta está vencida.");
+            else break;
+        } while (true);
+
         return DatosPago.paraTarjeta(numero, titular, fecha);
     }
 
@@ -28,15 +49,14 @@ public class TarjetaDeCredito implements MetodoPago {
     @Override
     public boolean pagar(double monto) {
         if (!validar()) return false;
-        String enmascarado = "**** **** **** " + numero.replaceAll("\\s", "").substring(12);
+        String enmascarado = "**** **** **** " + Validaciones.normalizarNumeroTarjeta(numero).substring(12);
         System.out.printf("  Procesando pago con Tarjeta de Crédito (%s, titular: %s) por $%.2f... APROBADO%n",
                 enmascarado, titular.toUpperCase(), monto);
         return true;
     }
 
     private boolean validar() {
-        String digitos = numero == null ? "" : numero.replaceAll("\\s|-", "");
-        if (digitos.length() != 16 || !digitos.matches("\\d+")) {
+        if (Validaciones.esNumeroTarjetaValido(numero)) {
             System.out.println("  ✗ Número de tarjeta inválido (debe tener 16 dígitos).");
             return false;
         }
@@ -44,8 +64,12 @@ public class TarjetaDeCredito implements MetodoPago {
             System.out.println("  ✗ El nombre del titular no puede estar vacío.");
             return false;
         }
-        if (fechaExpiracion == null || !fechaExpiracion.matches("(0[1-9]|1[0-2])/\\d{2}")) {
+        if (Validaciones.esFechaExpiracioValida(fechaExpiracion)) {
             System.out.println("  ✗ Fecha de expiración inválida (formato MM/AA, ej: 12/27).");
+            return false;
+        }
+        if (Validaciones.estaVencida(fechaExpiracion)) {
+            System.out.println("  ✗ La tarjeta está vencida.");
             return false;
         }
         return true;
