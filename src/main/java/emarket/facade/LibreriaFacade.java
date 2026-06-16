@@ -7,7 +7,6 @@ import emarket.carrito.CarritoService;
 import emarket.catalogo.CatalogoService;
 import emarket.catalogo.ComponenteCatalogo;
 import emarket.catalogo.Producto;
-import emarket.estado.EstadoPedido;
 import emarket.notificacion.CanalNotificacion;
 import emarket.pago.DatosPago;
 import emarket.pago.MetodoPagoFactory;
@@ -20,11 +19,11 @@ import java.util.List;
 // Facade: punto de entrada único para todas las operaciones del sistema
 public class LibreriaFacade {
 
-    private AutenticacionService autService;
-    private CatalogoService catService;
-    private CarritoService carritoService;
-    private PedidoService pedidoService;
-    private MetodoPagoFactory metodoPagoFactory;
+    private final AutenticacionService autService;
+    private final CatalogoService catService;
+    private final CarritoService carritoService;
+    private final PedidoService pedidoService;
+    private final MetodoPagoFactory metodoPagoFactory;
 
     public LibreriaFacade() {
         this.autService = new AutenticacionService();
@@ -44,11 +43,6 @@ public class LibreriaFacade {
         autService.cerrarSesion();
     }
 
-    public void registrarCliente(String username, String pass, String direccion) {
-        autService.registrarCliente(username, pass, direccion);
-    }
-
-    // Registro extendido con todos los datos de contacto para notificaciones
     public Cliente registrarClienteCompleto(String username, String pass, String direccion,
                                              String email, String telefono, String tokenDispositivo,
                                              List<CanalNotificacion> canalesPreferidos) {
@@ -83,6 +77,36 @@ public class LibreriaFacade {
         carritoService.agregarProducto(cliente, idProducto, cantidad);
     }
 
+    public void eliminarProductoDelCarrito(int idProducto) {
+        verificarAutenticacion();
+        Cliente cliente = autService.getClienteActual();
+        if (cliente == null) throw new IllegalStateException("Solo los clientes tienen carrito");
+        Producto p = catService.buscarProductoPorId(idProducto);
+        if (p == null) throw new IllegalStateException("Producto no encontrado: id=" + idProducto);
+        carritoService.eliminarProducto(cliente, p);
+    }
+
+    public void modificarCantidadEnCarrito(int idProducto, int cantidad) {
+        verificarAutenticacion();
+        Cliente cliente = autService.getClienteActual();
+        if (cliente == null) throw new IllegalStateException("Solo los clientes tienen carrito");
+        if (!catService.verificarDisponibilidad(idProducto, cantidad)) {
+            Producto p = catService.buscarProductoPorId(idProducto);
+            String nombre = p != null ? p.getNombre() : "id=" + idProducto;
+            throw new IllegalStateException("Stock insuficiente para: " + nombre);
+        }
+        Producto p = catService.buscarProductoPorId(idProducto);
+        if (p == null) throw new IllegalStateException("Producto no encontrado: id=" + idProducto);
+        carritoService.modificarCantidad(cliente, p, cantidad);
+    }
+
+    public void vaciarCarrito() {
+        verificarAutenticacion();
+        Cliente cliente = autService.getClienteActual();
+        if (cliente == null) throw new IllegalStateException("Solo los clientes tienen carrito");
+        carritoService.vaciarCarrito(cliente);
+    }
+
     // ── Pedidos ──────────────────────────────────────────────────────────────
 
     public DatosPago pedirDatosPago(TipoPago tipoPago, Scanner sc) {
@@ -96,20 +120,24 @@ public class LibreriaFacade {
             throw new IllegalStateException("Solo los clientes pueden realizar compras");
         }
         pedidoService.confirmarCompra(cliente, tipoPago, datosPago);
+        // El cliente estuvo presente → las notificaciones generadas se marcan como vistas
+        cliente.tomarNotificaciones();
     }
 
-    public void actualizarEstadoPedido(int idPedido, EstadoPedido nuevoEstado) {
+    public List<String> tomarNotificaciones() {
+        verificarAutenticacion();
+        Cliente cliente = autService.getClienteActual();
+        if (cliente == null) return List.of();
+        return cliente.tomarNotificaciones();
+    }
+
+    public Pedido actualizarEstadoPedido(int idPedido) {
         verificarAutenticacion();
         // Solo administradores pueden cambiar el estado de un pedido
         if (!(autService.getUsuarioActual() instanceof Administrador)) {
             throw new IllegalStateException("Solo los administradores pueden actualizar el estado de un pedido");
         }
-        pedidoService.actualizarEstadoPedido(idPedido, nuevoEstado);
-    }
-
-    public Pedido consultarPedido(int idPedido) {
-        verificarAutenticacion();
-        return pedidoService.buscarPedido(idPedido);
+        return pedidoService.actualizarEstadoPedido(idPedido);
     }
 
     public List<Pedido> listarPedidosCliente() {
@@ -137,7 +165,7 @@ public class LibreriaFacade {
     // ── Privado ──────────────────────────────────────────────────────────────
 
     private void verificarAutenticacion() {
-        if (!autService.estaAutenticado()) {
+        if (autService.estaAutenticado()) {
             throw new IllegalStateException("Debe iniciar sesión primero");
         }
     }
