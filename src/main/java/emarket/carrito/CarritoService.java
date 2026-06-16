@@ -28,6 +28,9 @@ public class CarritoService {
     }
 
     public void modificarCantidad(Cliente cliente, Producto producto, int cantidad) {
+        if (!catService.verificarDisponibilidad(producto.getId(), cantidad)) {
+            throw new IllegalArgumentException("Stock insuficiente para: " + producto.getNombre());
+        }
         cliente.getCarrito().modificarCantidad(producto, cantidad);
     }
 
