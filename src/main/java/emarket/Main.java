@@ -344,7 +344,7 @@ public class Main {
         try {
             facade.confirmarCompra(tipoPago, facade.pedirDatosPago(tipoPago, scanner));
             ok("¡Compra confirmada con éxito!");
-            mostrarNotificacionesPendientes();
+            facade.tomarNotificaciones(); // el cliente estaba en sesión y ya vio los canales
         } catch (IllegalStateException e) {
             error(e.getMessage());
         }

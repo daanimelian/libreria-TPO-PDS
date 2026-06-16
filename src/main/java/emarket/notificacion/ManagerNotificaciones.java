@@ -9,17 +9,13 @@ public class ManagerNotificaciones implements ObservadorNotificacion {
     public void actualizar(EventoNotificacion evento) {
         Cliente cliente = evento.getCliente();
         String mensaje = buildMensaje(evento);
-        registrarEnInbox(cliente, mensaje);
+        cliente.agregarNotificacion(mensaje);
         enviarACanales(cliente, mensaje);
     }
 
     private String buildMensaje(EventoNotificacion evento) {
         return "Tu pedido #" + evento.getIdPedido()
                 + " cambió a estado: " + evento.getEstadoNombre();
-    }
-
-    private void registrarEnInbox(Cliente cliente, String mensaje) {
-        cliente.agregarNotificacion(mensaje);
     }
 
     private void enviarACanales(Cliente cliente, String mensaje) {
