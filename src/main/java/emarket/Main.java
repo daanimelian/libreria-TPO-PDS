@@ -6,11 +6,15 @@ import emarket.catalogo.ComponenteCatalogo;
 import emarket.catalogo.Producto;
 import emarket.facade.LibreriaFacade;
 import emarket.notificacion.CanalNotificacion;
+import emarket.repositorio.factory.InMemoryRepositorioFactory;
+import emarket.repositorio.factory.JdbcRepositorioFactory;
+import emarket.repositorio.factory.RepositorioFactory;
 import emarket.util.Validaciones;
 import emarket.pago.TipoPago;
 import emarket.pedido.ItemPedido;
 import emarket.pedido.Pedido;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -20,7 +24,20 @@ public class Main {
     private static Scanner scanner;
 
     public static void main(String[] args) {
-        facade  = new LibreriaFacade();
+        // Elegir la factory según el argumento de línea de comandos:
+        //   java -jar app.jar --jdbc  →  PostgreSQL (requiere Docker activo)
+        //   java -jar app.jar         →  en memoria (sin dependencias externas)
+        boolean usarJdbc = Arrays.asList(args).contains("--jdbc");
+        RepositorioFactory factory = usarJdbc
+                ? new JdbcRepositorioFactory()
+                : new InMemoryRepositorioFactory();
+
+        System.out.println();
+        System.out.println("  Modo de persistencia: " +
+                (usarJdbc ? "PostgreSQL via JDBC" : "En memoria"));
+        System.out.println();
+
+        facade  = new LibreriaFacade(factory);
         scanner = new Scanner(System.in);
 
         facade.precargarDatos();
@@ -140,8 +157,6 @@ public class Main {
         String direccion = scanner.nextLine().trim();
         String email = pedirEmail();
         String telefono = pedirTelefono();
-        // El token push lo genera el sistema operativo del dispositivo en una app real;
-        // acá lo derivamos del username para mantener el canal PUSH funcional en la demo.
         String token = "TOKEN_" + username.toUpperCase();
         System.out.println("  Canales disponibles: EMAIL, SMS, PUSH");
         List<CanalNotificacion> canales;
@@ -348,12 +363,11 @@ public class Main {
         try {
             facade.confirmarCompra(tipoPago, facade.pedirDatosPago(tipoPago, scanner));
             ok("¡Compra confirmada con éxito!");
-            facade.tomarNotificaciones(); // el cliente estaba en sesión y ya vio los canales
+            facade.tomarNotificaciones();
         } catch (IllegalStateException e) {
             error(e.getMessage());
         }
     }
-
 
     // ══════════════════════════════════════════════════════════════════════════
     // ACCIONES — PEDIDOS (CLIENTE)
@@ -397,8 +411,6 @@ public class Main {
         }
     }
 
-    // Avanza el pedido al siguiente estado de la cadena PENDIENTE→PAGADO→ENVIADO→ENTREGADO.
-    // La transición (y su validez) la decide el propio estado actual del pedido (State).
     private static void accionActualizarEstadoPedido() {
         System.out.print("  ID del pedido a avanzar: ");
         int id = leerEntero();
@@ -457,25 +469,20 @@ public class Main {
         }
     }
 
-    // Lee una contraseña ocultando los caracteres con ANSI conceal (\033[8m).
-    // Siempre usa el scanner (conectado a stdin), así funciona tanto en terminal
-    // real como con stdin redirigido. El ocultamiento visual es "best-effort":
-    // funciona en Terminal/iTerm2/zsh; en IDEs los caracteres pueden verse igual.
     private static String leerPassword(String prompt) {
-        System.out.print(prompt + "\033[8m"); // activar modo oculto
+        System.out.print(prompt + "\033[8m");
         String pass;
         try {
             pass = scanner.nextLine().trim();
         } catch (java.util.NoSuchElementException e) {
             pass = "";
         } finally {
-            System.out.print("\033[0m"); // restaurar visibilidad
+            System.out.print("\033[0m");
             System.out.flush();
         }
         return pass;
     }
 
-    // Pide la contraseña dos veces y repite hasta que coincidan.
     private static String pedirPasswordConConfirmacion() {
         while (true) {
             String p1 = leerPassword("  Contraseña         : ");
@@ -489,7 +496,6 @@ public class Main {
         }
     }
 
-    // Pide un email y repite hasta que tenga texto antes y después del '@'.
     private static String pedirEmail() {
         while (true) {
             System.out.print("  Email              : ");
@@ -499,7 +505,6 @@ public class Main {
         }
     }
 
-    // Pide un teléfono y repite hasta que tenga exactamente 10 dígitos numéricos.
     private static String pedirTelefono() {
         while (true) {
             System.out.print("  Teléfono (10 dígitos): ");
@@ -529,7 +534,6 @@ public class Main {
 
     private static void cabecera(String titulo) {
         System.out.println("╔══════════════════════════════════╗");
-        // Centrar el título dentro de 34 caracteres
         int padding = Math.max(0, (34 - titulo.length()) / 2);
         System.out.println("║" + " ".repeat(padding) + titulo
                 + " ".repeat(Math.max(0, 34 - padding - titulo.length())) + "║");

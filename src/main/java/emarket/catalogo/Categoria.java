@@ -6,6 +6,7 @@ import java.util.List;
 // Composite: nodo del árbol, puede contener otros componentes
 public class Categoria implements ComponenteCatalogo {
 
+    private int id;
     private String nombre;
     private List<ComponenteCatalogo> hijos = new ArrayList<>();
 
@@ -24,6 +25,9 @@ public class Categoria implements ComponenteCatalogo {
     public List<ComponenteCatalogo> getHijos() {
         return hijos;
     }
+
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
     @Override
     public String getNombre() { return nombre; }

@@ -1,6 +1,13 @@
 # Compiled class file
 *.class
 
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# DB credentials (usar db.properties.example como template)
+src/main/resources/db.properties
+
 # Log file
 *.log
 

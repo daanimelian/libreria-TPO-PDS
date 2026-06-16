@@ -11,16 +11,32 @@ import emarket.catalogo.CatalogoService;
 import emarket.catalogo.ComponenteCatalogo;
 import emarket.catalogo.Producto;
 import emarket.notificacion.CanalNotificacion;
+import emarket.notificacion.EstrategiaNotificacionFactory;
+import emarket.notificacion.ManagerNotificaciones;
+import emarket.notificacion.Notificacion;
 import emarket.pago.DatosPago;
 import emarket.pago.MetodoPagoFactory;
 import emarket.pago.TipoPago;
-import java.util.Arrays;
-import java.util.Scanner;
 import emarket.pedido.Pedido;
 import emarket.pedido.PedidoService;
+import emarket.repositorio.IRepositorioCatalogo;
+import emarket.repositorio.IRepositorioNotificaciones;
+import emarket.repositorio.IRepositorioPedidos;
+import emarket.repositorio.IRepositorioUsuarios;
+import emarket.repositorio.factory.InMemoryRepositorioFactory;
+import emarket.repositorio.factory.RepositorioFactory;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
+import java.util.stream.Collectors;
 
-// Facade: punto de entrada único para todas las operaciones del sistema
+/**
+ * Facade: punto de entrada único para todas las operaciones del sistema.
+ *
+ * También actúa como raíz de composición (Composition Root): recibe una
+ * RepositorioFactory y delega la creación de todos los repositorios en ella,
+ * sin conocer qué implementación concreta se está usando (DIP).
+ */
 public class LibreriaFacade {
 
     private final AutenticacionService autService;
@@ -28,13 +44,28 @@ public class LibreriaFacade {
     private final CarritoService carritoService;
     private final PedidoService pedidoService;
     private final MetodoPagoFactory metodoPagoFactory;
+    private final IRepositorioNotificaciones repoNotificaciones;
 
+    // Constructor principal: recibe la factory → DIP explícito
+    public LibreriaFacade(RepositorioFactory factory) {
+        IRepositorioUsuarios       repoUsuarios = factory.crearRepositorioUsuarios();
+        IRepositorioPedidos        repoPedidos  = factory.crearRepositorioPedidos();
+        IRepositorioCatalogo       repoCatalogo = factory.crearRepositorioCatalogo();
+        IRepositorioNotificaciones repoNotif    = factory.crearRepositorioNotificaciones();
+
+        ManagerNotificaciones manager = EstrategiaNotificacionFactory.crearManager(repoNotif);
+
+        this.autService          = new AutenticacionService(repoUsuarios);
+        this.catService          = new CatalogoService(repoCatalogo);
+        this.carritoService      = new CarritoService(catService);
+        this.pedidoService       = new PedidoService(repoPedidos, repoCatalogo, manager);
+        this.metodoPagoFactory   = new MetodoPagoFactory();
+        this.repoNotificaciones  = repoNotif;
+    }
+
+    // Constructor de conveniencia: usa la implementación en memoria por defecto
     public LibreriaFacade() {
-        this.autService = new AutenticacionService();
-        this.catService = new CatalogoService();
-        this.carritoService = new CarritoService(catService);
-        this.pedidoService = new PedidoService();
-        this.metodoPagoFactory = new MetodoPagoFactory();
+        this(new InMemoryRepositorioFactory());
     }
 
     // ── Autenticación ────────────────────────────────────────────────────────
@@ -127,12 +158,13 @@ public class LibreriaFacade {
         verificarAutenticacion();
         Cliente cliente = autService.getClienteActual();
         if (cliente == null) return List.of();
-        return cliente.tomarNotificaciones();
+        List<Notificacion> noVistas = repoNotificaciones.listarNoVistas(cliente.getUsername());
+        repoNotificaciones.marcarTodasComoVistas(cliente.getUsername());
+        return noVistas.stream().map(Notificacion::toString).collect(Collectors.toList());
     }
 
     public Pedido actualizarEstadoPedido(int idPedido) {
         verificarAutenticacion();
-        // Solo administradores pueden cambiar el estado de un pedido
         if (!(autService.getUsuarioActual() instanceof Administrador)) {
             throw new IllegalStateException("Solo los administradores pueden actualizar el estado de un pedido");
         }
@@ -158,9 +190,9 @@ public class LibreriaFacade {
 
     // ── Estado de sesión ─────────────────────────────────────────────────────
 
-    public boolean estaAutenticado()   { return autService.estaAutenticado(); }
-    public boolean esCliente()         { return autService.getClienteActual() != null; }
-    public String getUsernameActual()  {
+    public boolean estaAutenticado()  { return autService.estaAutenticado(); }
+    public boolean esCliente()        { return autService.getClienteActual() != null; }
+    public String getUsernameActual() {
         Usuario u = autService.getUsuarioActual();
         return u != null ? u.getUsername() : null;
     }
@@ -179,24 +211,26 @@ public class LibreriaFacade {
         return cliente.getCarrito().calcularTotal();
     }
 
-    // ── Precarga de datos de demo ────────────────────────────────────────────
+    // ── Precarga de datos de demo (idempotente) ──────────────────────────────
 
     public void precargarDatos() {
-        Categoria raiz = new Categoria("Catálogo de Libros");
-        catService.setCatalogoRaiz(raiz);
+        // Si el catálogo ya tiene datos (modo JDBC con DB populada), no re-seedear
+        if (catService.listarCatalogo() != null) return;
+
+        Categoria raiz = catService.crearCategoria("Catálogo de Libros", null);
 
         Categoria ficcion = catService.crearCategoria("Ficción", raiz);
-        catService.agregarProducto(ficcion, new Producto(1, "Cien años de soledad",  2500.0,  8));
-        catService.agregarProducto(ficcion, new Producto(2, "El principito",         1800.0, 12));
-        catService.agregarProducto(ficcion, new Producto(3, "1984",                  2200.0,  6));
+        catService.agregarProducto(ficcion, new Producto(0, "Cien años de soledad",  2500.0,  8));
+        catService.agregarProducto(ficcion, new Producto(0, "El principito",         1800.0, 12));
+        catService.agregarProducto(ficcion, new Producto(0, "1984",                  2200.0,  6));
 
         Categoria tecnicos = catService.crearCategoria("Técnicos", raiz);
-        catService.agregarProducto(tecnicos, new Producto(4, "Clean Code",           4500.0,  5));
-        catService.agregarProducto(tecnicos, new Producto(5, "Design Patterns",      5000.0,  3));
+        catService.agregarProducto(tecnicos, new Producto(0, "Clean Code",           4500.0,  5));
+        catService.agregarProducto(tecnicos, new Producto(0, "Design Patterns",      5000.0,  3));
 
         Categoria historia = catService.crearCategoria("Historia", raiz);
-        catService.agregarProducto(historia, new Producto(6, "Sapiens",              3200.0, 10));
-        catService.agregarProducto(historia, new Producto(7, "El arte de la guerra", 1500.0, 15));
+        catService.agregarProducto(historia, new Producto(0, "Sapiens",              3200.0, 10));
+        catService.agregarProducto(historia, new Producto(0, "El arte de la guerra", 1500.0, 15));
 
         registrarClienteCompleto(
                 "juan", "juan1234", "Av. Corrientes 1234, CABA",
