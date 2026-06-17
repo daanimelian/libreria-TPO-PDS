@@ -1,0 +1,654 @@
+@startuml EMarket_UML_UPDATED
+
+title EMarket — Diagrama de Clases (versión corregida)
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: config
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.config" {
+
+  class ConfiguracionSistema <<Singleton>> {
+    - {static} instancia : ConfiguracionSistema
+    - impuestos : double = 0.21
+    - parametros : Map<String, String>
+    - ConfiguracionSistema()
+    + {static} synchronized getInstance() : ConfiguracionSistema
+    + getImpuestos() : double
+    + getParametro(clave : String) : String
+  }
+
+  class DataSourceProvider <<Singleton>> {
+    - {static} instancia : DataSourceProvider
+    - dataSource : HikariDataSource
+    - DataSourceProvider()
+    + {static} synchronized getInstance() : DataSourceProvider
+    + getDataSource() : DataSource
+    + cerrar()
+  }
+}
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: auth
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.auth" {
+
+  abstract class Usuario {
+    # username : String
+    # passwordHash : String
+    + Usuario(username : String, pass : String)
+    + getUsername() : String
+    + validarCredenciales(pass : String) : boolean
+    + getPasswordHash() : String
+    + setPasswordHash(hash : String)
+  }
+
+  class Cliente {
+    - carrito : Carrito
+    - canalesPreferidos : List<CanalNotificacion>
+    - direccion : String
+    - email : String
+    - telefono : String
+    - tokenDispositivo : String
+    + Cliente(username : String, pass : String, direccion : String)
+    + getCarrito() : Carrito
+    + getCanalesPreferidos() : List<CanalNotificacion>
+    + modificarPreferenciasNotificacion(canales : List<CanalNotificacion>)
+    + getDestinatarioPara(canal : CanalNotificacion) : String
+    + getDireccion() : String
+    + getEmail() : String
+    + getTelefono() : String
+    + getTokenDispositivo() : String
+  }
+
+  class Administrador {
+    - legajo : String
+    + Administrador(username : String, pass : String)
+    + getLegajo() : String
+  }
+
+  class AutenticacionService {
+    - {static} CLAVE_ADMIN : String = "admin123"
+    - repositorio : IRepositorioUsuarios
+    - usuarioActual : Usuario
+    + AutenticacionService(repositorio : IRepositorioUsuarios)
+    + iniciarSesion(username : String, pass : String) : boolean
+    + cerrarSesion()
+    + registrarClienteCompleto(...) : Cliente
+    + registrarAdministrador(username : String, pass : String, claveAdmin : String)
+    + getClienteActual() : Cliente
+    + getUsuarioActual() : Usuario
+    + estaAutenticado() : boolean
+  }
+
+  Usuario <|-- Cliente
+  Usuario <|-- Administrador
+  AutenticacionService --> "1" IRepositorioUsuarios : usa
+  AutenticacionService --> "0..1" Usuario : sesión activa
+}
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: catalogo  (Composite)
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.catalogo" {
+
+  interface ComponenteCatalogo <<Composite - Component>> {
+    + getNombre() : String
+    + getPrecio() : double
+    + getStock() : int
+  }
+
+  class Categoria <<Composite - Composite>> {
+    - id : int
+    - nombre : String
+    - hijos : List<ComponenteCatalogo>
+    + Categoria(nombre : String)
+    + agregarComponente(c : ComponenteCatalogo)
+    + eliminarComponente(c : ComponenteCatalogo)
+    + getHijos() : List<ComponenteCatalogo>
+    + getId() : int
+    + setId(id : int)
+    + getNombre() : String
+    + getPrecio() : double
+    + getStock() : int
+  }
+
+  class Producto <<Composite - Leaf>> {
+    - id : int
+    - nombre : String
+    - precio : double
+    - stock : int
+    + Producto(id : int, nombre : String, precio : double, stock : int)
+    + getId() : int
+    + setId(id : int)
+    + getNombre() : String
+    + getPrecio() : double
+    + getStock() : int
+    + verificarStock(cantidad : int) : boolean
+    + reducirStock(cantidad : int)
+  }
+
+  class CatalogoService {
+    - repositorio : IRepositorioCatalogo
+    + CatalogoService(repositorio : IRepositorioCatalogo)
+    + buscarProductoPorId(id : int) : Producto
+    + listarCatalogo() : ComponenteCatalogo
+    + verificarDisponibilidad(id : int, cantidad : int) : boolean
+    + agregarProducto(categoria : Categoria, producto : Producto)
+    + crearCategoria(nombre : String, padre : Categoria) : Categoria
+  }
+
+  ComponenteCatalogo <|.. Categoria
+  ComponenteCatalogo <|.. Producto
+  Categoria "1" o-- "*" ComponenteCatalogo : contiene
+  CatalogoService --> "1" IRepositorioCatalogo : usa
+}
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: carrito
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.carrito" {
+
+  class Carrito {
+    - items : List<ItemCarrito>
+    + agregarProducto(p : Producto, cantidad : int)
+    + eliminarProducto(p : Producto)
+    + modificarCantidad(p : Producto, cantidad : int)
+    + calcularTotal() : double
+    + vaciarCarrito()
+    + getItems() : List<ItemCarrito>
+    + estaVacio() : boolean
+  }
+
+  class ItemCarrito {
+    - producto : Producto
+    - cantidad : int
+    + ItemCarrito(producto : Producto, cantidad : int)
+    + getProducto() : Producto
+    + getCantidad() : int
+    + getSubtotal() : double
+    + modificarCantidad(cantidad : int)
+  }
+
+  class CarritoService {
+    - catService : CatalogoService
+    + CarritoService(catService : CatalogoService)
+    + agregarProducto(cliente : Cliente, idProducto : int, cantidad : int)
+    + eliminarProducto(cliente : Cliente, producto : Producto)
+    + modificarCantidad(cliente : Cliente, producto : Producto, cantidad : int)
+    + vaciarCarrito(cliente : Cliente)
+  }
+
+  Carrito "1" *-- "*" ItemCarrito : contiene
+  ItemCarrito "*" --> "1" Producto : referencia
+  CarritoService --> "1" CatalogoService : valida stock
+  Cliente "1" *-- "1" Carrito : posee
+}
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: pago  (Strategy)
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.pago" {
+
+  enum TipoPago {
+    TARJETA_CREDITO
+    PAYPAL
+    MERCADO_PAGO
+    TRANSFERENCIA
+  }
+
+  interface MetodoPago <<Strategy - Interface>> {
+    + pagar(monto : double) : boolean
+  }
+
+  class TarjetaDeCredito <<Strategy - ConcreteStrategy>> {
+    - numero : String
+    - titular : String
+    - fechaExpiracion : String
+    + TarjetaDeCredito(numero : String, titular : String, fechaExpiracion : String)
+    + pagar(monto : double) : boolean
+  }
+
+  class PayPal <<Strategy - ConcreteStrategy>> {
+    - email : String
+    + PayPal(email : String)
+    + pagar(monto : double) : boolean
+  }
+
+  class MercadoPago <<Strategy - ConcreteStrategy>> {
+    - email : String
+    - accessToken : String
+    + MercadoPago(email : String, accessToken : String)
+    + pagar(monto : double) : boolean
+  }
+
+  class Transferencia <<Strategy - ConcreteStrategy>> {
+    - cbu : String
+    - banco : String
+    + Transferencia(cbu : String, banco : String)
+    + pagar(monto : double) : boolean
+  }
+
+  class DatosPago <<Builder>> {
+    - numeroTarjeta : String
+    - titular : String
+    - fechaExpiracion : String
+    - emailPayPal : String
+    - emailMercadoPago : String
+    - accessToken : String
+    - cbu : String
+    - banco : String
+    + {static} paraTarjeta(numero : String, titular : String, fecha : String) : DatosPago
+    + {static} paraPayPal(email : String) : DatosPago
+    + {static} paraMercadoPago(email : String, accessToken : String) : DatosPago
+    + {static} paraTransferencia(cbu : String, banco : String) : DatosPago
+    + getNumeroTarjeta() : String
+    + getTitular() : String
+    + getFechaExpiracion() : String
+    + getEmailPayPal() : String
+    + getEmailMercadoPago() : String
+    + getAccessToken() : String
+    + getCbu() : String
+    + getBanco() : String
+  }
+
+  class MetodoPagoFactory {
+    + crearMetodoPago(tipo : TipoPago, datos : DatosPago) : MetodoPago
+  }
+
+  class ProcesadorPagos <<Strategy - Context>> {
+    - metodoPagoFactory : MetodoPagoFactory
+    + procesarCobro(pedido : Pedido, tipo : TipoPago, datos : DatosPago) : boolean
+  }
+
+  MetodoPago <|.. TarjetaDeCredito
+  MetodoPago <|.. PayPal
+  MetodoPago <|.. MercadoPago
+  MetodoPago <|.. Transferencia
+  MetodoPagoFactory ..> MetodoPago : crea
+  MetodoPagoFactory ..> DatosPago : consume
+  ProcesadorPagos --> "1" MetodoPagoFactory : usa
+}
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: estado  (State)
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.estado" {
+
+  interface EstadoPedido <<State - Interface>> {
+    + procesar(pedido : Pedido)
+    + getNombre() : String
+  }
+
+  class EstadoPendiente <<State - ConcreteState>> {
+    + procesar(pedido : Pedido)
+    + getNombre() : String
+  }
+
+  class EstadoPagado <<State - ConcreteState>> {
+    + procesar(pedido : Pedido)
+    + getNombre() : String
+  }
+
+  class EstadoEnviado <<State - ConcreteState>> {
+    + procesar(pedido : Pedido)
+    + getNombre() : String
+  }
+
+  class EstadoEntregado <<State - ConcreteState (terminal)>> {
+    + procesar(pedido : Pedido)
+    + getNombre() : String
+  }
+
+  class EstadoPedidoFactory {
+    + {static} crear(nombre : String) : EstadoPedido
+  }
+
+  EstadoPedido <|.. EstadoPendiente
+  EstadoPedido <|.. EstadoPagado
+  EstadoPedido <|.. EstadoEnviado
+  EstadoPedido <|.. EstadoEntregado
+  EstadoPedidoFactory ..> EstadoPedido : crea
+
+  note right of EstadoEntregado
+    procesar() lanza
+    IllegalStateException
+    (estado terminal)
+  end note
+}
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: notificacion  (Observer + Strategy)
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.notificacion" {
+
+  enum CanalNotificacion {
+    EMAIL
+    SMS
+    PUSH
+  }
+
+  interface SujetoObservable <<Observer - Subject Interface>> {
+    + agregarObservador(o : ObservadorNotificacion)
+    + eliminarObservador(o : ObservadorNotificacion)
+    + notificarCambios()
+  }
+
+  interface ObservadorNotificacion <<Observer - Observer Interface>> {
+    + actualizar(evento : EventoNotificacion)
+  }
+
+  class EventoNotificacion {
+    - idPedido : int
+    - estadoNombre : String
+    - cliente : Cliente
+    + EventoNotificacion(idPedido : int, estadoNombre : String, cliente : Cliente)
+    + getIdPedido() : int
+    + getEstadoNombre() : String
+    + getCliente() : Cliente
+  }
+
+  class ManagerNotificaciones <<Observer - ConcreteObserver>> {
+    - repositorio : IRepositorioNotificaciones
+    + ManagerNotificaciones(repositorio : IRepositorioNotificaciones)
+    + actualizar(evento : EventoNotificacion)
+  }
+
+  interface EstrategiaNotificacion <<Strategy - Interface>> {
+    + enviarMensaje(mensaje : String, destinatario : String)
+  }
+
+  class EstrategiaNotificacionEmail <<Strategy - ConcreteStrategy>> {
+    - smtpHost : String
+    + enviarMensaje(mensaje : String, destinatario : String)
+  }
+
+  class EstrategiaNotificacionSMS <<Strategy - ConcreteStrategy>> {
+    - proveedorSMS : String
+    + enviarMensaje(mensaje : String, destinatario : String)
+  }
+
+  class EstrategiaNotificacionPush <<Strategy - ConcreteStrategy>> {
+    + enviarMensaje(mensaje : String, destinatario : String)
+  }
+
+  class EstrategiaNotificacionFactory {
+    + {static} crearNotificacion(tipo : CanalNotificacion) : EstrategiaNotificacion
+    + {static} crearManager(repositorio : IRepositorioNotificaciones) : ManagerNotificaciones
+  }
+
+  class Notificacion {
+    - mensaje : String
+    - timestamp : LocalDateTime
+    - visto : boolean
+    + Notificacion(mensaje : String)
+    + {static} reconstruirDesdeDB(mensaje : String, timestamp : LocalDateTime, visto : boolean) : Notificacion
+    + getMensaje() : String
+    + getTimestamp() : LocalDateTime
+    + isVisto() : boolean
+    + marcarVisto()
+  }
+
+  ObservadorNotificacion <|.. ManagerNotificaciones
+  EstrategiaNotificacion <|.. EstrategiaNotificacionEmail
+  EstrategiaNotificacion <|.. EstrategiaNotificacionSMS
+  EstrategiaNotificacion <|.. EstrategiaNotificacionPush
+  EstrategiaNotificacionFactory ..> EstrategiaNotificacion : crea
+  EstrategiaNotificacionFactory ..> ManagerNotificaciones : crea
+  ManagerNotificaciones --> "1" IRepositorioNotificaciones : persiste
+  ManagerNotificaciones ..> EstrategiaNotificacionFactory : usa
+  ManagerNotificaciones ..> EventoNotificacion : recibe
+}
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: pedido  (State context + Observer subject)
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.pedido" {
+
+  class Pedido <<State - Context, Observer - Subject>> {
+    - id : int
+    - estadoActual : EstadoPedido
+    - observadores : List<ObservadorNotificacion>
+    - items : List<ItemPedido>
+    - cliente : Cliente
+    - tipoPago : TipoPago
+    - total : double
+    + Pedido(id : int, cliente : Cliente, items : List<ItemPedido>, total : double, tipoPago : TipoPago)
+    + setEstado(estado : EstadoPedido)
+    + getEstado() : EstadoPedido
+    + avanzarEstado()
+    + agregarObservador(o : ObservadorNotificacion)
+    + eliminarObservador(o : ObservadorNotificacion)
+    + notificarCambios()
+    + getId() : int
+    + getCliente() : Cliente
+    + getTotal() : double
+    + getItems() : List<ItemPedido>
+    + getTipoPago() : TipoPago
+  }
+
+  class ItemPedido {
+    - nombreProducto : String
+    - precioUnitario : double
+    - cantidad : int
+    + ItemPedido(nombreProducto : String, precioUnitario : double, cantidad : int)
+    + getNombreProducto() : String
+    + getPrecioUnitario() : double
+    + getCantidad() : int
+    + getSubtotal() : double
+  }
+
+  class PedidoService {
+    - repoPedidos : IRepositorioPedidos
+    - repoCatalogo : IRepositorioCatalogo
+    - procesadorPagos : ProcesadorPagos
+    - managerNotificaciones : ManagerNotificaciones
+    + PedidoService(repoPedidos : IRepositorioPedidos, repoCatalogo : IRepositorioCatalogo, manager : ManagerNotificaciones)
+    + confirmarCompra(cliente : Cliente, tipoPago : TipoPago, datosPago : DatosPago) : Pedido
+    + actualizarEstadoPedido(idPedido : int) : Pedido
+    + listarPedidosPorCliente(cliente : Cliente) : List<Pedido>
+    + listarTodosLosPedidos() : List<Pedido>
+  }
+
+  SujetoObservable <|.. Pedido
+  Pedido "1" --> "1" EstadoPedido : estado actual
+  Pedido "1" o-- "*" ObservadorNotificacion : notifica a
+  Pedido "1" *-- "*" ItemPedido : contiene snapshot
+  Pedido "1" --> "1" Cliente : pertenece a
+  Pedido ..> EventoNotificacion : crea al notificar
+  PedidoService --> "1" IRepositorioPedidos : persiste
+  PedidoService --> "1" IRepositorioCatalogo : actualiza stock
+  PedidoService --> "1" ProcesadorPagos : delega cobro
+  PedidoService --> "1" ManagerNotificaciones : registra como observer
+  PedidoService ..> ConfiguracionSistema : consulta IVA
+}
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: repositorio — interfaces
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.repositorio" {
+
+  interface IRepositorioUsuarios {
+    + guardar(usuario : Usuario)
+    + buscarPorUsername(username : String) : Optional<Usuario>
+    + existeUsername(username : String) : boolean
+    + listarTodos() : List<Usuario>
+  }
+
+  interface IRepositorioPedidos {
+    + guardar(pedido : Pedido)
+    + buscarPorId(id : int) : Optional<Pedido>
+    + listarTodos() : List<Pedido>
+    + listarPorCliente(usernameCliente : String) : List<Pedido>
+    + actualizarEstado(id : int, estadoNombre : String)
+    + getProximoId() : int
+  }
+
+  interface IRepositorioCatalogo {
+    + obtenerRaiz() : ComponenteCatalogo
+    + buscarProductoPorId(id : int) : Optional<Producto>
+    + guardarCategoria(categoria : Categoria, padre : Categoria)
+    + guardarProducto(producto : Producto, categoria : Categoria)
+    + actualizarStock(idProducto : int, nuevoStock : int)
+  }
+
+  interface IRepositorioNotificaciones {
+    + guardar(usernameCliente : String, mensaje : String)
+    + listarNoVistas(usernameCliente : String) : List<Notificacion>
+    + marcarTodasComoVistas(usernameCliente : String)
+  }
+
+  ' ─ Factory de repositorios (Abstract Factory) ─
+  package "factory" {
+
+    interface RepositorioFactory <<AbstractFactory>> {
+      + crearRepositorioUsuarios() : IRepositorioUsuarios
+      + crearRepositorioPedidos() : IRepositorioPedidos
+      + crearRepositorioCatalogo() : IRepositorioCatalogo
+      + crearRepositorioNotificaciones() : IRepositorioNotificaciones
+    }
+
+    class InMemoryRepositorioFactory <<ConcreteFactory>> {
+      + crearRepositorioUsuarios() : IRepositorioUsuarios
+      + crearRepositorioPedidos() : IRepositorioPedidos
+      + crearRepositorioCatalogo() : IRepositorioCatalogo
+      + crearRepositorioNotificaciones() : IRepositorioNotificaciones
+    }
+
+    class JdbcRepositorioFactory <<ConcreteFactory>> {
+      + crearRepositorioUsuarios() : IRepositorioUsuarios
+      + crearRepositorioPedidos() : IRepositorioPedidos
+      + crearRepositorioCatalogo() : IRepositorioCatalogo
+      + crearRepositorioNotificaciones() : IRepositorioNotificaciones
+    }
+
+    RepositorioFactory <|.. InMemoryRepositorioFactory
+    RepositorioFactory <|.. JdbcRepositorioFactory
+  }
+
+  ' ─ Implementaciones InMemory ─
+  package "inmemory" {
+
+    class InMemoryRepositorioUsuarios {
+      - usuarios : List<Usuario>
+    }
+
+    class InMemoryRepositorioPedidos {
+      - pedidos : Map<Integer, Pedido>
+      - proximoId : int
+    }
+
+    class InMemoryRepositorioCatalogo {
+      - raiz : ComponenteCatalogo
+    }
+
+    class InMemoryRepositorioNotificaciones {
+      - notificaciones : Map<String, List<Notificacion>>
+    }
+
+    IRepositorioUsuarios <|.. InMemoryRepositorioUsuarios
+    IRepositorioPedidos <|.. InMemoryRepositorioPedidos
+    IRepositorioCatalogo <|.. InMemoryRepositorioCatalogo
+    IRepositorioNotificaciones <|.. InMemoryRepositorioNotificaciones
+  }
+
+  ' ─ Implementaciones JDBC ─
+  package "jdbc" {
+
+    abstract class JdbcRepositorioBase {
+      # consultar(operacion : OperacionJdbc<T>) : T
+      # ejecutar(comando : ComandoJdbc)
+    }
+
+    class JdbcRepositorioUsuarios {
+    }
+
+    class JdbcRepositorioPedidos {
+    }
+
+    class JdbcRepositorioCatalogo {
+    }
+
+    class JdbcRepositorioNotificaciones {
+    }
+
+    JdbcRepositorioBase <|-- JdbcRepositorioUsuarios
+    JdbcRepositorioBase <|-- JdbcRepositorioPedidos
+    JdbcRepositorioBase <|-- JdbcRepositorioCatalogo
+    JdbcRepositorioBase <|-- JdbcRepositorioNotificaciones
+
+    IRepositorioUsuarios <|.. JdbcRepositorioUsuarios
+    IRepositorioPedidos <|.. JdbcRepositorioPedidos
+    IRepositorioCatalogo <|.. JdbcRepositorioCatalogo
+    IRepositorioNotificaciones <|.. JdbcRepositorioNotificaciones
+
+    JdbcRepositorioBase ..> DataSourceProvider : obtiene conexión
+  }
+}
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: util
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.util" {
+
+  class Validaciones {
+    - Validaciones()
+    + {static} esEmailValido(email : String) : boolean
+    + {static} normalizarNumeroTarjeta(numero : String) : String
+    + {static} esNumeroTarjetaValido(numero : String) : boolean
+    + {static} esFechaExpiracionValida(fecha : String) : boolean
+    + {static} estaVencida(fechaMMAA : String) : boolean
+    + {static} esCbuValido(cbu : String) : boolean
+  }
+}
+
+' ══════════════════════════════════════════════════════════════════════
+' PAQUETE: facade  (Facade + Composition Root)
+' ══════════════════════════════════════════════════════════════════════
+package "emarket.facade" {
+
+  class LibreriaFacade <<Facade, CompositionRoot>> {
+    - autService : AutenticacionService
+    - catService : CatalogoService
+    - carritoService : CarritoService
+    - pedidoService : PedidoService
+    - metodoPagoFactory : MetodoPagoFactory
+    - repoNotificaciones : IRepositorioNotificaciones
+    + LibreriaFacade(factory : RepositorioFactory)
+    + LibreriaFacade()
+    + iniciarSesion(username : String, pass : String) : boolean
+    + cerrarSesion()
+    + registrarClienteCompleto(...) : Cliente
+    + registrarAdministrador(username : String, pass : String, claveAdmin : String)
+    + buscarProducto(id : int) : Producto
+    + listarCatalogo() : ComponenteCatalogo
+    + agregarProductoAlCarrito(idProducto : int, cantidad : int)
+    + eliminarProductoDelCarrito(idProducto : int)
+    + modificarCantidadEnCarrito(idProducto : int, cantidad : int)
+    + vaciarCarrito()
+    + confirmarCompra(tipoPago : TipoPago, datosPago : DatosPago)
+    + actualizarEstadoPedido(idPedido : int) : Pedido
+    + listarPedidosCliente() : List<Pedido>
+    + listarTodosLosPedidos() : List<Pedido>
+    + tomarNotificaciones() : List<String>
+    + getItemsCarrito() : List<ItemCarrito>
+    + getTotalCarrito() : double
+    + estaAutenticado() : boolean
+    + esCliente() : boolean
+    + getUsernameActual() : String
+    + precargarDatos()
+  }
+
+  LibreriaFacade --> "1" AutenticacionService
+  LibreriaFacade --> "1" CatalogoService
+  LibreriaFacade --> "1" CarritoService
+  LibreriaFacade --> "1" PedidoService
+  LibreriaFacade --> "1" MetodoPagoFactory
+  LibreriaFacade --> "1" IRepositorioNotificaciones
+  LibreriaFacade ..> RepositorioFactory : recibe (DIP)
+}
+
+@enduml
