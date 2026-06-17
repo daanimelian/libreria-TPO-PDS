@@ -1,39 +1,34 @@
 package emarket.pago;
 
 import emarket.util.Validaciones;
-import java.util.Scanner;
 
+/**
+ * Implementación concreta del patrón Strategy para pagos por transferencia bancaria.
+ *
+ * <p>Valida el CBU (22 dígitos) y que el nombre del banco no esté vacío antes de
+ * aprobar el cobro. La recolección de datos del usuario es responsabilidad exclusiva
+ * de la capa de presentación ({@code Main}).
+ */
 public class Transferencia implements MetodoPago {
-
-    public static DatosPago pedirDatos(Scanner sc) {
-        String cbu, banco;
-
-        do {
-            System.out.print("  CBU (22 dígitos) : ");
-            cbu = sc.nextLine().trim();
-            if (!Validaciones.esCbuValido(cbu))
-                System.out.println("  ✗ El CBU debe tener exactamente 22 dígitos numéricos.");
-        } while (!Validaciones.esCbuValido(cbu));
-
-        do {
-            System.out.print("  Banco            : ");
-            banco = sc.nextLine().trim();
-            if (banco.isBlank())
-                System.out.println("  ✗ El nombre del banco no puede estar vacío.");
-        } while (banco.isBlank());
-
-        return DatosPago.paraTransferencia(cbu, banco);
-    }
-
 
     private final String cbu;
     private final String banco;
 
+    /**
+     * @param cbu   Clave Bancaria Uniforme de 22 dígitos de la cuenta destino
+     * @param banco nombre de la entidad bancaria (ej: "Banco Nación", "Santander")
+     */
     public Transferencia(String cbu, String banco) {
         this.cbu   = cbu;
         this.banco = banco;
     }
 
+    /**
+     * Procesa el cobro validando el CBU y el nombre del banco.
+     *
+     * @param monto importe a cobrar en la moneda configurada en el sistema
+     * @return {@code true} si el pago fue aprobado; {@code false} si los datos son inválidos
+     */
     @Override
     public boolean pagar(double monto) {
         if (!validar()) return false;
@@ -42,6 +37,7 @@ public class Transferencia implements MetodoPago {
         return true;
     }
 
+    /** Verifica que el CBU tenga 22 dígitos y que el banco no esté en blanco. */
     private boolean validar() {
         if (!Validaciones.esCbuValido(cbu)) {
             System.out.println("  ✗ CBU inválido (debe tener exactamente 22 dígitos).");

@@ -27,15 +27,19 @@ import emarket.repositorio.factory.InMemoryRepositorioFactory;
 import emarket.repositorio.factory.RepositorioFactory;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Scanner;
 import java.util.stream.Collectors;
 
 /**
- * Facade: punto de entrada único para todas las operaciones del sistema.
+ * Punto de entrada único al sistema (patrón Facade).
  *
- * También actúa como raíz de composición (Composition Root): recibe una
- * RepositorioFactory y delega la creación de todos los repositorios en ella,
- * sin conocer qué implementación concreta se está usando (DIP).
+ * <p>Encapsula todos los subsistemas ({@code auth}, {@code catalogo}, {@code carrito},
+ * {@code pedido}) detrás de una interfaz cohesiva. La capa de presentación ({@code Main}
+ * o la UI Swing) solo interactúa con esta clase; nunca con los servicios internos.
+ *
+ * <p>También actúa como raíz de composición (<em>Composition Root</em>): recibe una
+ * {@link RepositorioFactory} e instancia todos los servicios con sus dependencias
+ * concretas, sin que ningún servicio conozca la implementación de persistencia
+ * (principio DIP).
  */
 public class LibreriaFacade {
 
@@ -46,7 +50,11 @@ public class LibreriaFacade {
     private final MetodoPagoFactory metodoPagoFactory;
     private final IRepositorioNotificaciones repoNotificaciones;
 
-    // Constructor principal: recibe la factory → DIP explícito
+    /**
+     * Constructor principal: recibe la factory de repositorios (DIP explícito).
+     *
+     * @param factory implementación de persistencia a usar ({@code InMemory} o {@code Jdbc})
+     */
     public LibreriaFacade(RepositorioFactory factory) {
         IRepositorioUsuarios       repoUsuarios = factory.crearRepositorioUsuarios();
         IRepositorioPedidos        repoPedidos  = factory.crearRepositorioPedidos();
@@ -63,21 +71,45 @@ public class LibreriaFacade {
         this.repoNotificaciones  = repoNotif;
     }
 
-    // Constructor de conveniencia: usa la implementación en memoria por defecto
+    /**
+     * Constructor de conveniencia: usa la implementación en memoria (sin base de datos).
+     * Útil para pruebas y demos rápidas.
+     */
     public LibreriaFacade() {
         this(new InMemoryRepositorioFactory());
     }
 
     // ── Autenticación ────────────────────────────────────────────────────────
 
+    /**
+     * Intenta autenticar al usuario con las credenciales proporcionadas.
+     *
+     * @param username nombre de usuario registrado
+     * @param pass     contraseña en texto plano (se verifica contra el hash almacenado)
+     * @return {@code true} si las credenciales son válidas y la sesión fue iniciada
+     */
     public boolean iniciarSesion(String username, String pass) {
         return autService.iniciarSesion(username, pass);
     }
 
+    /** Cierra la sesión del usuario actualmente autenticado. */
     public void cerrarSesion() {
         autService.cerrarSesion();
     }
 
+    /**
+     * Registra un nuevo cliente en el sistema.
+     *
+     * @param username          nombre de usuario (mín. 4 caracteres, único)
+     * @param pass              contraseña (mín. 8 caracteres, debe contener al menos un dígito)
+     * @param direccion         domicilio de entrega
+     * @param email             correo electrónico para notificaciones
+     * @param telefono          teléfono de 10 dígitos para notificaciones SMS
+     * @param tokenDispositivo  token de dispositivo para notificaciones push
+     * @param canalesPreferidos canales de notificación preferidos ({@code EMAIL}, {@code SMS}, {@code PUSH})
+     * @return el cliente recién creado
+     * @throws IllegalArgumentException si algún dato no cumple las validaciones
+     */
     public Cliente registrarClienteCompleto(String username, String pass, String direccion,
                                              String email, String telefono, String tokenDispositivo,
                                              List<CanalNotificacion> canalesPreferidos) {
@@ -85,17 +117,38 @@ public class LibreriaFacade {
                 username, pass, direccion, email, telefono, tokenDispositivo, canalesPreferidos);
     }
 
+    /**
+     * Registra un nuevo administrador en el sistema.
+     *
+     * @param username   nombre de usuario (mín. 4 caracteres, único)
+     * @param pass       contraseña (mín. 8 caracteres, debe contener al menos un dígito)
+     * @param claveAdmin clave secreta de autorización para crear administradores
+     * @throws IllegalArgumentException si algún dato no cumple las validaciones
+     */
     public void registrarAdministrador(String username, String pass, String claveAdmin) {
         autService.registrarAdministrador(username, pass, claveAdmin);
     }
 
     // ── Catálogo ─────────────────────────────────────────────────────────────
 
+    /**
+     * Busca un producto por su identificador único.
+     *
+     * @param id identificador del producto
+     * @return el producto encontrado, o {@code null} si no existe
+     * @throws IllegalStateException si no hay sesión activa
+     */
     public Producto buscarProducto(int id) {
         verificarAutenticacion();
         return catService.buscarProductoPorId(id);
     }
 
+    /**
+     * Devuelve la raíz del árbol de catálogo (patrón Composite).
+     *
+     * @return componente raíz que contiene toda la jerarquía de categorías y productos
+     * @throws IllegalStateException si no hay sesión activa
+     */
     public ComponenteCatalogo listarCatalogo() {
         verificarAutenticacion();
         return catService.listarCatalogo();
@@ -103,6 +156,14 @@ public class LibreriaFacade {
 
     // ── Carrito ──────────────────────────────────────────────────────────────
 
+    /**
+     * Agrega un producto al carrito del cliente autenticado.
+     *
+     * @param idProducto identificador del producto a agregar
+     * @param cantidad   cantidad deseada (debe ser mayor a 0)
+     * @throws IllegalStateException si no hay sesión de cliente, si el producto no existe
+     *                               o si el stock es insuficiente
+     */
     public void agregarProductoAlCarrito(int idProducto, int cantidad) {
         verificarAutenticacion();
         Cliente cliente = autService.getClienteActual();
@@ -112,6 +173,12 @@ public class LibreriaFacade {
         carritoService.agregarProducto(cliente, idProducto, cantidad);
     }
 
+    /**
+     * Elimina un producto del carrito del cliente autenticado.
+     *
+     * @param idProducto identificador del producto a eliminar
+     * @throws IllegalStateException si el producto no está en el carrito
+     */
     public void eliminarProductoDelCarrito(int idProducto) {
         verificarAutenticacion();
         Cliente cliente = autService.getClienteActual();
@@ -121,6 +188,13 @@ public class LibreriaFacade {
         carritoService.eliminarProducto(cliente, p);
     }
 
+    /**
+     * Modifica la cantidad de un producto ya presente en el carrito.
+     *
+     * @param idProducto identificador del producto
+     * @param cantidad   nueva cantidad deseada (debe ser mayor a 0)
+     * @throws IllegalStateException si el stock es insuficiente o el producto no está en el carrito
+     */
     public void modificarCantidadEnCarrito(int idProducto, int cantidad) {
         verificarAutenticacion();
         Cliente cliente = autService.getClienteActual();
@@ -132,6 +206,7 @@ public class LibreriaFacade {
         carritoService.modificarCantidad(cliente, p, cantidad);
     }
 
+    /** Vacía por completo el carrito del cliente autenticado. */
     public void vaciarCarrito() {
         verificarAutenticacion();
         Cliente cliente = autService.getClienteActual();
@@ -141,10 +216,17 @@ public class LibreriaFacade {
 
     // ── Pedidos ──────────────────────────────────────────────────────────────
 
-    public DatosPago pedirDatosPago(TipoPago tipoPago, Scanner sc) {
-        return metodoPagoFactory.pedirDatos(tipoPago, sc);
-    }
-
+    /**
+     * Confirma la compra usando el método de pago y los datos proporcionados.
+     *
+     * <p>Flujo interno: genera ítems de pedido (snapshot), calcula total con IVA,
+     * reduce stock, procesa el pago con la estrategia elegida y avanza el estado
+     * de {@code PENDIENTE} a {@code PAGADO} disparando el Observer de notificaciones.
+     *
+     * @param tipoPago  método de pago seleccionado
+     * @param datosPago datos recolectados por la UI para el método elegido
+     * @throws IllegalStateException si el carrito está vacío o el pago es rechazado
+     */
     public void confirmarCompra(TipoPago tipoPago, DatosPago datosPago) {
         verificarAutenticacion();
         Cliente cliente = autService.getClienteActual();
@@ -154,6 +236,11 @@ public class LibreriaFacade {
         pedidoService.confirmarCompra(cliente, tipoPago, datosPago);
     }
 
+    /**
+     * Devuelve las notificaciones no leídas del cliente autenticado y las marca como vistas.
+     *
+     * @return lista de mensajes de notificación en formato legible
+     */
     public List<String> tomarNotificaciones() {
         verificarAutenticacion();
         Cliente cliente = autService.getClienteActual();
@@ -163,6 +250,14 @@ public class LibreriaFacade {
         return noVistas.stream().map(Notificacion::toString).collect(Collectors.toList());
     }
 
+    /**
+     * Avanza el estado de un pedido al siguiente en la cadena de estados (solo administradores).
+     *
+     * @param idPedido identificador del pedido a actualizar
+     * @return el pedido con su nuevo estado
+     * @throws IllegalStateException si el usuario no es administrador, si el pedido no existe
+     *                               o si el pedido ya está en estado {@code ENTREGADO}
+     */
     public Pedido actualizarEstadoPedido(int idPedido) {
         verificarAutenticacion();
         if (!(autService.getUsuarioActual() instanceof Administrador)) {
@@ -171,6 +266,12 @@ public class LibreriaFacade {
         return pedidoService.actualizarEstadoPedido(idPedido);
     }
 
+    /**
+     * Lista todos los pedidos del cliente autenticado.
+     *
+     * @return lista de pedidos del cliente, posiblemente vacía
+     * @throws IllegalStateException si el usuario autenticado no es un cliente
+     */
     public List<Pedido> listarPedidosCliente() {
         verificarAutenticacion();
         Cliente cliente = autService.getClienteActual();
@@ -180,6 +281,12 @@ public class LibreriaFacade {
         return pedidoService.listarPedidosPorCliente(cliente);
     }
 
+    /**
+     * Lista todos los pedidos del sistema (solo administradores).
+     *
+     * @return lista completa de pedidos registrados
+     * @throws IllegalStateException si el usuario autenticado no es un administrador
+     */
     public List<Pedido> listarTodosLosPedidos() {
         verificarAutenticacion();
         if (!(autService.getUsuarioActual() instanceof Administrador)) {
@@ -190,8 +297,15 @@ public class LibreriaFacade {
 
     // ── Estado de sesión ─────────────────────────────────────────────────────
 
+    /** @return {@code true} si hay un usuario autenticado en este momento */
     public boolean estaAutenticado()  { return autService.estaAutenticado(); }
+
+    /** @return {@code true} si el usuario autenticado es un cliente (no administrador) */
     public boolean esCliente()        { return autService.getClienteActual() != null; }
+
+    /**
+     * @return nombre de usuario de la sesión activa, o {@code null} si no hay sesión
+     */
     public String getUsernameActual() {
         Usuario u = autService.getUsuarioActual();
         return u != null ? u.getUsername() : null;
@@ -199,12 +313,22 @@ public class LibreriaFacade {
 
     // ── Carrito (consulta) ───────────────────────────────────────────────────
 
+    /**
+     * Devuelve una copia de los ítems del carrito del cliente autenticado.
+     *
+     * @return lista de ítems; nunca {@code null}
+     */
     public List<ItemCarrito> getItemsCarrito() {
         Cliente cliente = autService.getClienteActual();
         if (cliente == null) throw new IllegalStateException("Solo los clientes tienen carrito");
         return cliente.getCarrito().getItems();
     }
 
+    /**
+     * Calcula el subtotal del carrito (sin impuestos).
+     *
+     * @return suma de los subtotales de cada ítem
+     */
     public double getTotalCarrito() {
         Cliente cliente = autService.getClienteActual();
         if (cliente == null) throw new IllegalStateException("Solo los clientes tienen carrito");
@@ -213,8 +337,12 @@ public class LibreriaFacade {
 
     // ── Precarga de datos de demo (idempotente) ──────────────────────────────
 
+    /**
+     * Precarga datos de ejemplo: catálogo de libros y usuarios de prueba.
+     * Es idempotente: si el catálogo ya tiene datos (ej. modo JDBC con BD populada)
+     * no realiza ninguna acción.
+     */
     public void precargarDatos() {
-        // Si el catálogo ya tiene datos (modo JDBC con DB populada), no re-seedear
         if (catService.listarCatalogo() != null) return;
 
         Categoria raiz = catService.crearCategoria("Catálogo de Libros", null);
@@ -246,6 +374,7 @@ public class LibreriaFacade {
 
     // ── Privado ──────────────────────────────────────────────────────────────
 
+    /** Lanza {@link IllegalStateException} si no hay usuario autenticado. */
     private void verificarAutenticacion() {
         if (!autService.estaAutenticado()) {
             throw new IllegalStateException("Debe iniciar sesión primero");
