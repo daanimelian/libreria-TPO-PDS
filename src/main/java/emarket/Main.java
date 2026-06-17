@@ -53,6 +53,7 @@ public class Main {
             emarket.ui.LibreriaSwingApp.lanzar(usarJdbc);
             return;
         }
+
         RepositorioFactory factory = usarJdbc
                 ? new JdbcRepositorioFactory()
                 : new InMemoryRepositorioFactory();
