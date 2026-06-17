@@ -1,51 +1,38 @@
 package emarket.pago;
 
 import emarket.util.Validaciones;
-import java.util.Scanner;
 
+/**
+ * Implementación concreta del patrón Strategy para pagos con tarjeta de crédito.
+ *
+ * <p>Valida número de 16 dígitos, titular no vacío y fecha de expiración vigente
+ * antes de aprobar el cobro. La recolección de datos del usuario es responsabilidad
+ * exclusiva de la capa de presentación ({@code Main}).
+ */
 public class TarjetaDeCredito implements MetodoPago {
-
-    public static DatosPago pedirDatos(Scanner sc) {
-        String numero, titular, fecha;
-
-        do {
-            System.out.print("  Número de tarjeta (16 dígitos) : ");
-            numero = Validaciones.normalizarNumeroTarjeta(sc.nextLine().trim());
-            if (!Validaciones.esNumeroTarjetaValido(numero))
-                System.out.println("  ✗ Debe tener exactamente 16 dígitos numéricos.");
-        } while (!Validaciones.esNumeroTarjetaValido(numero));
-
-        do {
-            System.out.print("  Nombre del titular             : ");
-            titular = sc.nextLine().trim();
-            if (titular.isBlank())
-                System.out.println("  ✗ El nombre no puede estar vacío.");
-        } while (titular.isBlank());
-
-        do {
-            System.out.print("  Fecha de expiración (MM/AA)    : ");
-            fecha = sc.nextLine().trim();
-            if (!Validaciones.esFechaExpiracionValida(fecha))
-                System.out.println("  ✗ Formato inválido. Ejemplo: 12/27");
-            else if (Validaciones.estaVencida(fecha))
-                System.out.println("  ✗ La tarjeta está vencida.");
-            else break;
-        } while (true);
-
-        return DatosPago.paraTarjeta(numero, titular, fecha);
-    }
-
 
     private final String numero;
     private final String titular;
     private final String fechaExpiracion;
 
+    /**
+     * @param numero         número de tarjeta de 16 dígitos (puede incluir espacios/guiones;
+     *                       se normalizan internamente)
+     * @param titular        nombre del titular tal como aparece en la tarjeta
+     * @param fechaExpiracion fecha de vencimiento en formato {@code MM/AA}
+     */
     public TarjetaDeCredito(String numero, String titular, String fechaExpiracion) {
         this.numero          = numero;
         this.titular         = titular;
         this.fechaExpiracion = fechaExpiracion;
     }
 
+    /**
+     * Procesa el cobro validando los datos de la tarjeta.
+     *
+     * @param monto importe a cobrar en la moneda configurada en el sistema
+     * @return {@code true} si el pago fue aprobado; {@code false} si los datos son inválidos
+     */
     @Override
     public boolean pagar(double monto) {
         if (!validar()) return false;
@@ -55,6 +42,7 @@ public class TarjetaDeCredito implements MetodoPago {
         return true;
     }
 
+    /** Valida que el número, titular y fecha sean correctos y que la tarjeta no esté vencida. */
     private boolean validar() {
         if (!Validaciones.esNumeroTarjetaValido(numero)) {
             System.out.println("  ✗ Número de tarjeta inválido (debe tener 16 dígitos).");

@@ -1,29 +1,31 @@
 package emarket.pago;
 
 import emarket.util.Validaciones;
-import java.util.Scanner;
 
+/**
+ * Implementación concreta del patrón Strategy para pagos con PayPal.
+ *
+ * <p>Valida que el email de la cuenta PayPal tenga formato correcto antes de
+ * aprobar el cobro. La recolección de datos del usuario es responsabilidad
+ * exclusiva de la capa de presentación ({@code Main}).
+ */
 public class PayPal implements MetodoPago {
-
-    public static DatosPago pedirDatos(Scanner sc) {
-        String email;
-        do {
-            System.out.print("  Email de tu cuenta PayPal : ");
-            email = sc.nextLine().trim();
-            if (!Validaciones.esEmailValido(email))
-                System.out.println("  ✗ Email inválido. Ejemplo: nombre@dominio.com");
-            else break;
-        } while (true);
-        return DatosPago.paraPayPal(email);
-    }
-
 
     private final String email;
 
+    /**
+     * @param email dirección de correo asociada a la cuenta PayPal del comprador
+     */
     public PayPal(String email) {
         this.email = email;
     }
 
+    /**
+     * Procesa el cobro validando el email de la cuenta PayPal.
+     *
+     * @param monto importe a cobrar en la moneda configurada en el sistema
+     * @return {@code true} si el pago fue aprobado; {@code false} si el email es inválido
+     */
     @Override
     public boolean pagar(double monto) {
         if (!validar()) return false;
@@ -31,6 +33,7 @@ public class PayPal implements MetodoPago {
         return true;
     }
 
+    /** Verifica que el email tenga formato válido. */
     private boolean validar() {
         if (!Validaciones.esEmailValido(email)) {
             System.out.println("  ✗ Email de PayPal inválido.");

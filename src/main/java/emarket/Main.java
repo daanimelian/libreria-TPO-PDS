@@ -4,20 +4,35 @@ import emarket.carrito.ItemCarrito;
 import emarket.catalogo.Categoria;
 import emarket.catalogo.ComponenteCatalogo;
 import emarket.catalogo.Producto;
+import emarket.config.ConfiguracionSistema;
 import emarket.facade.LibreriaFacade;
 import emarket.notificacion.CanalNotificacion;
+import emarket.pago.DatosPago;
+import emarket.pago.TipoPago;
+import emarket.pedido.ItemPedido;
+import emarket.pedido.Pedido;
 import emarket.repositorio.factory.InMemoryRepositorioFactory;
 import emarket.repositorio.factory.JdbcRepositorioFactory;
 import emarket.repositorio.factory.RepositorioFactory;
 import emarket.util.Validaciones;
-import emarket.pago.TipoPago;
-import emarket.pedido.ItemPedido;
-import emarket.pedido.Pedido;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
+/**
+ * Punto de entrada de la aplicación EMarket — interfaz de consola.
+ *
+ * <p>Interactúa exclusivamente con {@link LibreriaFacade}; nunca con servicios internos.
+ * Toda la lógica de negocio reside en la capa de dominio; esta clase solo se ocupa
+ * de mostrar información por pantalla y capturar input del usuario.
+ *
+ * <p>Modo de ejecución:
+ * <ul>
+ *   <li>{@code java -jar app.jar}        → repositorios en memoria (sin dependencias externas)</li>
+ *   <li>{@code java -jar app.jar --jdbc} → PostgreSQL vía JDBC (requiere Docker activo)</li>
+ * </ul>
+ */
 public class Main {
 
     private static LibreriaFacade facade;
@@ -290,9 +305,10 @@ public class Main {
             }
             separador();
             double subtotal = facade.getTotalCarrito();
+            double iva = ConfiguracionSistema.getInstance().getImpuestos();
             System.out.printf("  %-28s %10s   $%9.2f%n", "SUBTOTAL", "", subtotal);
-            double total = subtotal * (1 + 0.21);
-            System.out.printf("  %-28s %10s   $%9.2f%n", "TOTAL (c/ IVA 21%)", "", total);
+            System.out.printf("  %-28s %10s   $%9.2f%n",
+                    String.format("TOTAL (c/ IVA %.0f%%)", iva * 100), "", subtotal * (1 + iva));
             System.out.println();
 
             System.out.println("  1. Eliminar un producto");
@@ -372,7 +388,8 @@ public class Main {
         }
 
         try {
-            facade.confirmarCompra(tipoPago, facade.pedirDatosPago(tipoPago, scanner));
+            DatosPago datosPago = pedirDatosPago(tipoPago);
+            facade.confirmarCompra(tipoPago, datosPago);
             ok("¡Compra confirmada con éxito!");
             facade.tomarNotificaciones();
         } catch (IllegalStateException e) {
@@ -433,6 +450,108 @@ public class Main {
         } catch (IllegalStateException e) {
             error(e.getMessage());
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // RECOLECCIÓN DE DATOS DE PAGO (responsabilidad exclusiva de la UI)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Despacha la recolección de datos al método correspondiente según el tipo de pago.
+     * La lógica de validación de formato reside aquí para no contaminar las clases de dominio.
+     */
+    private static DatosPago pedirDatosPago(TipoPago tipo) {
+        System.out.println();
+        return switch (tipo) {
+            case TARJETA_CREDITO -> pedirDatosTarjeta();
+            case PAYPAL          -> pedirDatosPayPal();
+            case MERCADO_PAGO    -> pedirDatosMercadoPago();
+            case TRANSFERENCIA   -> pedirDatosTransferencia();
+        };
+    }
+
+    private static DatosPago pedirDatosTarjeta() {
+        String numero, titular, fecha;
+
+        do {
+            System.out.print("  Número de tarjeta (16 dígitos) : ");
+            numero = Validaciones.normalizarNumeroTarjeta(scanner.nextLine().trim());
+            if (!Validaciones.esNumeroTarjetaValido(numero))
+                System.out.println("  ✗ Debe tener exactamente 16 dígitos numéricos.");
+        } while (!Validaciones.esNumeroTarjetaValido(numero));
+
+        do {
+            System.out.print("  Nombre del titular             : ");
+            titular = scanner.nextLine().trim();
+            if (titular.isBlank())
+                System.out.println("  ✗ El nombre no puede estar vacío.");
+        } while (titular.isBlank());
+
+        do {
+            System.out.print("  Fecha de expiración (MM/AA)    : ");
+            fecha = scanner.nextLine().trim();
+            if (!Validaciones.esFechaExpiracionValida(fecha))
+                System.out.println("  ✗ Formato inválido. Ejemplo: 12/27");
+            else if (Validaciones.estaVencida(fecha))
+                System.out.println("  ✗ La tarjeta está vencida.");
+            else break;
+        } while (true);
+
+        return DatosPago.paraTarjeta(numero, titular, fecha);
+    }
+
+    private static DatosPago pedirDatosPayPal() {
+        String email;
+        do {
+            System.out.print("  Email de tu cuenta PayPal : ");
+            email = scanner.nextLine().trim();
+            if (!Validaciones.esEmailValido(email))
+                System.out.println("  ✗ Email inválido. Ejemplo: nombre@dominio.com");
+            else break;
+        } while (true);
+        return DatosPago.paraPayPal(email);
+    }
+
+    private static DatosPago pedirDatosMercadoPago() {
+        String email;
+        do {
+            System.out.print("  Email de tu cuenta MercadoPago : ");
+            email = scanner.nextLine().trim();
+            if (!Validaciones.esEmailValido(email))
+                System.out.println("  ✗ Email inválido. Ejemplo: nombre@dominio.com");
+            else break;
+        } while (true);
+
+        String accessToken;
+        do {
+            System.out.print("  Access Token                   : ");
+            accessToken = scanner.nextLine().trim();
+            if (accessToken.isBlank())
+                System.out.println("  ✗ El access token no puede estar vacío.");
+            else break;
+        } while (true);
+
+        return DatosPago.paraMercadoPago(email, accessToken);
+    }
+
+    private static DatosPago pedirDatosTransferencia() {
+        String cbu, banco;
+
+        do {
+            System.out.print("  CBU (22 dígitos) : ");
+            cbu = scanner.nextLine().trim();
+            if (!Validaciones.esCbuValido(cbu))
+                System.out.println("  ✗ El CBU debe tener exactamente 22 dígitos numéricos.");
+        } while (!Validaciones.esCbuValido(cbu));
+
+        do {
+            System.out.print("  Banco            : ");
+            banco = scanner.nextLine().trim();
+            if (banco.isBlank())
+                System.out.println("  ✗ El nombre del banco no puede estar vacío.");
+        } while (banco.isBlank());
+
+        return DatosPago.paraTransferencia(cbu, banco);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
