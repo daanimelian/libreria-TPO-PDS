@@ -357,12 +357,12 @@ public class LibreriaFacade {
         catService.agregarProducto(fantasia, new Producto(3, "El Señor de los Anillos", 3800.0, 5));
 
         Categoria tecnicos = catService.crearCategoria("Técnicos", raiz);
-        catService.agregarProducto(tecnicos, new Producto(0, "Clean Code",           4500.0,  5));
-        catService.agregarProducto(tecnicos, new Producto(0, "Design Patterns",      5000.0,  3));
+        catService.agregarProducto(tecnicos, new Producto(4, "Clean Code",           4500.0,  5));
+        catService.agregarProducto(tecnicos, new Producto(5, "Design Patterns",      5000.0,  3));
 
         Categoria historia = catService.crearCategoria("Historia", raiz);
-        catService.agregarProducto(historia, new Producto(0, "Sapiens",              3200.0, 10));
-        catService.agregarProducto(historia, new Producto(0, "El arte de la guerra", 1500.0, 15));
+        catService.agregarProducto(historia, new Producto(6, "Sapiens",              3200.0, 10));
+        catService.agregarProducto(historia, new Producto(7, "El arte de la guerra", 1500.0, 15));
 
         registrarClienteCompleto(
                 "juan", "juan1234", "Av. Corrientes 1234, CABA",
