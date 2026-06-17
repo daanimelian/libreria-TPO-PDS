@@ -1,6 +1,9 @@
 package emarket.ui;
 
 import emarket.facade.LibreriaFacade;
+import emarket.repositorio.factory.InMemoryRepositorioFactory;
+import emarket.repositorio.factory.JdbcRepositorioFactory;
+import emarket.repositorio.factory.RepositorioFactory;
 import emarket.ui.controller.AuthController;
 import emarket.ui.view.LoginView;
 import java.awt.Dimension;
@@ -16,16 +19,24 @@ import javax.swing.UIManager;
 public class LibreriaSwingApp {
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(LibreriaSwingApp::iniciarAplicacion);
+        boolean usarJdbc = java.util.Arrays.asList(args).contains("--jdbc");
+        lanzar(usarJdbc);
     }
 
-    private static void iniciarAplicacion() {
+    public static void lanzar(boolean usarJdbc) {
+        RepositorioFactory factory = usarJdbc
+                ? new JdbcRepositorioFactory()
+                : new InMemoryRepositorioFactory();
+        SwingUtilities.invokeLater(() -> iniciarAplicacion(factory));
+    }
+
+    private static void iniciarAplicacion(RepositorioFactory factory) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception ignored) {
         }
 
-        LibreriaFacade facade = new LibreriaFacade();
+        LibreriaFacade facade = new LibreriaFacade(factory);
         facade.precargarDatos();
 
         mostrarVentanaLogin(facade);
