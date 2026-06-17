@@ -39,7 +39,20 @@ public class Main {
     private static Scanner scanner;
 
     public static void main(String[] args) {
-        boolean usarJdbc = Arrays.asList(args).contains("--jdbc");
+        // Modos de ejecución:
+        //   (sin args, con display)  →  UI Swing en memoria  [default]
+        //   --jdbc                   →  UI Swing + PostgreSQL
+        //   --consola                →  UI consola en memoria
+        //   --consola --jdbc         →  UI consola + PostgreSQL
+        List<String> argList = Arrays.asList(args);
+        boolean usarJdbc    = argList.contains("--jdbc");
+        boolean usarConsola = argList.contains("--consola");
+        boolean hayDisplay  = !java.awt.GraphicsEnvironment.isHeadless();
+
+        if (!usarConsola && hayDisplay) {
+            emarket.ui.LibreriaSwingApp.lanzar(usarJdbc);
+            return;
+        }
         RepositorioFactory factory = usarJdbc
                 ? new JdbcRepositorioFactory()
                 : new InMemoryRepositorioFactory();
