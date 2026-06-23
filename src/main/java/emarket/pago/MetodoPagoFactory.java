@@ -1,29 +1,22 @@
 package emarket.pago;
 
 /**
- * Factory para instanciar la estrategia de pago concreta a partir de un {@link TipoPago}
- * y los {@link DatosPago} ya recolectados por la capa de presentación.
+ * Creador abstracto del patrón Factory Method para instanciar estrategias de pago.
  *
- * <p>Responsabilidad única: traducir el par {@code (TipoPago, DatosPago)} en el objeto
- * {@link MetodoPago} correspondiente. La recolección de datos del usuario (input de
- * consola, formulario, etc.) queda fuera del alcance de esta clase.
+ * <p>Cada subclase concreta sobreescribe {@link #crearMetodoPago(DatosPago)} para
+ * construir la implementación de {@link MetodoPago} que le corresponde, sin que
+ * esta clase conozca los tipos concretos (principio OCP).
+ *
+ * <p>La selección de qué factory usar según el {@link TipoPago} elegido por el
+ * usuario es responsabilidad de {@link ProcesadorPagos}.
  */
-public class MetodoPagoFactory {
+public abstract class MetodoPagoFactory {
 
     /**
-     * Crea e instancia el {@link MetodoPago} concreto que corresponde al tipo elegido.
+     * Factory method: crea e instancia el {@link MetodoPago} concreto.
      *
-     * @param tipo  tipo de método de pago seleccionado por el usuario
-     * @param datos objeto con los datos de pago ya validados y recolectados
+     * @param datos datos de pago ya validados y recolectados por la UI
      * @return la estrategia de pago concreta lista para ejecutar {@code pagar()}
      */
-    public MetodoPago crearMetodoPago(TipoPago tipo, DatosPago datos) {
-        return switch (tipo) {
-            case TARJETA_CREDITO -> new TarjetaDeCredito(
-                    datos.getNumeroTarjeta(), datos.getTitular(), datos.getFechaExpiracion());
-            case PAYPAL          -> new PayPal(datos.getEmailPayPal());
-            case MERCADO_PAGO    -> new MercadoPago(datos.getEmailMercadoPago(), datos.getAccessToken());
-            case TRANSFERENCIA   -> new Transferencia(datos.getCbu(), datos.getBanco());
-        };
-    }
+    public abstract MetodoPago crearMetodoPago(DatosPago datos);
 }

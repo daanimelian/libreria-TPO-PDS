@@ -15,7 +15,6 @@ import emarket.notificacion.EstrategiaNotificacionFactory;
 import emarket.notificacion.ManagerNotificaciones;
 import emarket.notificacion.Notificacion;
 import emarket.pago.DatosPago;
-import emarket.pago.MetodoPagoFactory;
 import emarket.pago.TipoPago;
 import emarket.pedido.Pedido;
 import emarket.pedido.PedidoService;
@@ -47,7 +46,6 @@ public class LibreriaFacade {
     private final CatalogoService catService;
     private final CarritoService carritoService;
     private final PedidoService pedidoService;
-    private final MetodoPagoFactory metodoPagoFactory;
     private final IRepositorioNotificaciones repoNotificaciones;
 
     /**
@@ -67,7 +65,6 @@ public class LibreriaFacade {
         this.catService          = new CatalogoService(repoCatalogo);
         this.carritoService      = new CarritoService(catService);
         this.pedidoService       = new PedidoService(repoPedidos, repoCatalogo, manager);
-        this.metodoPagoFactory   = new MetodoPagoFactory();
         this.repoNotificaciones  = repoNotif;
     }
 
