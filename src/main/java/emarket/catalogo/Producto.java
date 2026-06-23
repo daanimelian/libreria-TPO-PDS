@@ -69,7 +69,6 @@ public class Producto implements ComponenteCatalogo {
 
     @Override
     public String toString() {
-        return String.format("Producto[id=%d, nombre=%s, precio=%.2f, stock=%d]",
-                id, nombre, precio, stock);
+        return "Producto: " + this.nombre + " ($" + this.precio + ", stock=" + this.stock + ")";
     }
 }

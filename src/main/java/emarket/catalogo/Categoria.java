@@ -53,4 +53,9 @@ public class Categoria implements ComponenteCatalogo {
     public int getStock() {
         return hijos.stream().mapToInt(ComponenteCatalogo::getStock).sum();
     }
+
+    @Override
+    public String toString() {
+        return this.nombre; 
+    }
 }
