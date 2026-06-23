@@ -118,6 +118,16 @@ public class LibreriaFacade {
         catService.agregarCategoria(nombre, nombrePadre);
     }
 
+    public double getPrecioTotalCategoria(String nombreCategoria) {
+        verificarAutenticacion();
+        return catService.getPrecioTotalCategoria(nombreCategoria);
+    }
+
+    public int getStockTotalCategoria(String nombreCategoria) {
+        verificarAutenticacion();
+        return catService.getStockTotalCategoria(nombreCategoria);
+    }
+
     public void modificarStock(int idProducto, int nuevoStock) {
         verificarAutenticacion();
         if (!(autService.getUsuarioActual() instanceof Administrador)) {

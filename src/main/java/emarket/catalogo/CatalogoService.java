@@ -54,6 +54,18 @@ public class CatalogoService {
         p.setStock(nuevoStock);
     }
 
+    public double getPrecioTotalCategoria(String nombreCategoria) {
+        Categoria cat = buscarCategoriaPorNombre(repositorio.obtenerRaiz(), nombreCategoria);
+        if (cat == null) throw new IllegalArgumentException("Categoría no encontrada: " + nombreCategoria);
+        return cat.getPrecio();
+    }
+
+    public int getStockTotalCategoria(String nombreCategoria) {
+        Categoria cat = buscarCategoriaPorNombre(repositorio.obtenerRaiz(), nombreCategoria);
+        if (cat == null) throw new IllegalArgumentException("Categoría no encontrada: " + nombreCategoria);
+        return cat.getStock();
+    }
+
     private Categoria buscarCategoriaPorNombre(ComponenteCatalogo componente, String nombre) {
         if (componente instanceof Categoria cat) {
             if (cat.getNombre().equalsIgnoreCase(nombre)) return cat;
