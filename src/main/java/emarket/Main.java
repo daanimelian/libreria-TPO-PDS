@@ -24,6 +24,12 @@ public class Main {
     private static Scanner scanner;
 
     public static void main(String[] args) {
+        // Lanzar UI Swing si no se pasa el flag --consola
+        if (!Arrays.asList(args).contains("--consola")) {
+            emarket.ui.LibreriaSwingApp.main(args);
+            return;
+        }
+
         // Elegir la factory según el argumento de línea de comandos:
         //   java -jar app.jar --jdbc  →  PostgreSQL (requiere Docker activo)
         //   java -jar app.jar         →  en memoria (sin dependencias externas)
