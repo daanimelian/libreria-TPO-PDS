@@ -37,6 +37,10 @@ public class Producto implements ComponenteCatalogo {
         stock -= cantidad;
     }
 
+    public void setStock(int stock) {
+        this.stock = stock;
+    }
+
     @Override
     public String toString() {
         return String.format("Producto[id=%d, nombre=%s, precio=%.2f, stock=%d]",

@@ -46,4 +46,34 @@ public class CatalogoService {
         if (padre != null) padre.agregarComponente(nueva);
         return nueva;
     }
+
+    public void agregarProductoEnCategoria(String nombreCategoria, Producto producto) {
+        Categoria cat = buscarCategoriaPorNombre(catalogoRaiz, nombreCategoria);
+        if (cat == null) throw new IllegalArgumentException("Categoría no encontrada: " + nombreCategoria);
+        cat.agregarComponente(producto);
+    }
+
+    public void agregarCategoria(String nombre, String nombrePadre) {
+        Categoria padre = buscarCategoriaPorNombre(catalogoRaiz, nombrePadre);
+        if (padre == null) throw new IllegalArgumentException("Categoría padre no encontrada: " + nombrePadre);
+        padre.agregarComponente(new Categoria(nombre));
+    }
+
+    public void modificarStock(int id, int nuevoStock) {
+        Producto p = buscarProductoPorId(id);
+        if (p == null) throw new IllegalArgumentException("Producto no encontrado: " + id);
+        if (nuevoStock < 0) throw new IllegalArgumentException("El stock no puede ser negativo");
+        p.setStock(nuevoStock);
+    }
+
+    private Categoria buscarCategoriaPorNombre(ComponenteCatalogo componente, String nombre) {
+        if (componente instanceof Categoria cat) {
+            if (cat.getNombre().equalsIgnoreCase(nombre)) return cat;
+            for (ComponenteCatalogo hijo : cat.getHijos()) {
+                Categoria encontrada = buscarCategoriaPorNombre(hijo, nombre);
+                if (encontrada != null) return encontrada;
+            }
+        }
+        return null;
+    }
 }

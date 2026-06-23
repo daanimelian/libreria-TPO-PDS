@@ -102,6 +102,9 @@ public class Main {
         cabecera("EMARKET — " + username + " [ADMINISTRADOR]");
         System.out.println("  1. Ver catálogo");
         System.out.println("  2. Buscar producto por ID");
+        System.out.println("  3. Agregar producto");
+        System.out.println("  4. Agregar categoría");
+        System.out.println("  5. Modificar stock de producto");
         System.out.println("  8. Ver todos los pedidos");
         System.out.println("  9. Actualizar estado de pedido");
         System.out.println("  7. Cerrar sesión");
@@ -111,6 +114,9 @@ public class Main {
         switch (leerOpcion()) {
             case 1 -> accionVerCatalogo();
             case 2 -> accionBuscarProducto();
+            case 3 -> accionAgregarProducto();
+            case 4 -> accionAgregarCategoria();
+            case 5 -> accionModificarStock();
             case 8 -> accionVerTodosLosPedidos();
             case 9 -> accionActualizarEstadoPedido();
             case 7 -> { facade.cerrarSesion(); ok("Sesión cerrada."); }
@@ -358,6 +364,56 @@ public class Main {
             facade.actualizarEstadoPedido(id, nuevoEstado);
             ok("Estado del pedido #" + id + " actualizado a: " + nuevoEstado.getNombre());
         } catch (IllegalStateException e) {
+            error(e.getMessage());
+        }
+    }
+
+    private static void accionAgregarProducto() {
+        System.out.print("  Nombre de la categoría : ");
+        String cat = scanner.nextLine().trim();
+        System.out.print("  ID del producto        : ");
+        int id = leerEntero();
+        System.out.print("  Nombre del producto    : ");
+        String nombre = scanner.nextLine().trim();
+        System.out.print("  Precio                 : ");
+        double precio;
+        try { precio = Double.parseDouble(scanner.nextLine().trim()); }
+        catch (NumberFormatException e) { error("Precio inválido."); return; }
+        System.out.print("  Stock inicial          : ");
+        int stock = leerEntero();
+        if (stock < 0) { error("Stock inválido."); return; }
+        try {
+            facade.agregarProducto(cat, id, nombre, precio, stock);
+            ok("Producto '" + nombre + "' agregado a '" + cat + "'.");
+        } catch (Exception e) {
+            error(e.getMessage());
+        }
+    }
+
+    private static void accionAgregarCategoria() {
+        System.out.print("  Nombre de la nueva categoría : ");
+        String nombre = scanner.nextLine().trim();
+        System.out.print("  Categoría padre              : ");
+        String padre = scanner.nextLine().trim();
+        try {
+            facade.agregarCategoria(nombre, padre);
+            ok("Categoría '" + nombre + "' agregada bajo '" + padre + "'.");
+        } catch (Exception e) {
+            error(e.getMessage());
+        }
+    }
+
+    private static void accionModificarStock() {
+        System.out.print("  ID del producto : ");
+        int id = leerEntero();
+        if (id < 0) { error("ID inválido."); return; }
+        System.out.print("  Nuevo stock     : ");
+        int stock = leerEntero();
+        if (stock < 0) { error("Stock inválido."); return; }
+        try {
+            facade.modificarStock(id, stock);
+            ok("Stock del producto #" + id + " actualizado a " + stock + ".");
+        } catch (Exception e) {
             error(e.getMessage());
         }
     }

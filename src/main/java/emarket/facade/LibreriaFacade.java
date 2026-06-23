@@ -5,6 +5,7 @@ import emarket.auth.AutenticacionService;
 import emarket.auth.Cliente;
 import emarket.carrito.CarritoService;
 import emarket.catalogo.CatalogoService;
+import emarket.catalogo.Categoria;
 import emarket.catalogo.ComponenteCatalogo;
 import emarket.catalogo.Producto;
 import emarket.estado.EstadoPedido;
@@ -65,6 +66,30 @@ public class LibreriaFacade {
     public ComponenteCatalogo listarCatalogo() {
         verificarAutenticacion();
         return catService.listarCatalogo();
+    }
+
+    public void agregarProducto(String nombreCategoria, int id, String nombre, double precio, int stock) {
+        verificarAutenticacion();
+        if (!(autService.getUsuarioActual() instanceof Administrador)) {
+            throw new IllegalStateException("Solo los administradores pueden agregar productos");
+        }
+        catService.agregarProductoEnCategoria(nombreCategoria, new Producto(id, nombre, precio, stock));
+    }
+
+    public void agregarCategoria(String nombre, String nombrePadre) {
+        verificarAutenticacion();
+        if (!(autService.getUsuarioActual() instanceof Administrador)) {
+            throw new IllegalStateException("Solo los administradores pueden agregar categorías");
+        }
+        catService.agregarCategoria(nombre, nombrePadre);
+    }
+
+    public void modificarStock(int idProducto, int nuevoStock) {
+        verificarAutenticacion();
+        if (!(autService.getUsuarioActual() instanceof Administrador)) {
+            throw new IllegalStateException("Solo los administradores pueden modificar el stock");
+        }
+        catService.modificarStock(idProducto, nuevoStock);
     }
 
     // ── Carrito ──────────────────────────────────────────────────────────────
