@@ -7,7 +7,9 @@ import emarket.notificacion.ObservadorNotificacion;
 import emarket.notificacion.SujetoObservable;
 import emarket.pago.TipoPago;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Representa una orden de compra del cliente (patrón State + patrón Observer — Subject).
@@ -24,7 +26,7 @@ public class Pedido implements SujetoObservable {
 
     private final int id;
     private EstadoPedido estadoActual;
-    private final List<ObservadorNotificacion> observadores = new ArrayList<>();
+    private final Set<ObservadorNotificacion> observadores = new LinkedHashSet<>();
     private final List<ItemPedido> items;
     private final Cliente cliente;
     private final TipoPago tipoPago;
@@ -69,7 +71,9 @@ public class Pedido implements SujetoObservable {
 
     @Override
     public void agregarObservador(ObservadorNotificacion o) {
-        observadores.add(o);
+        if(!observadores.contains(o)) {
+            observadores.add(o);
+        }
     }
 
     @Override
