@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Cliente extends Usuario {
 
-    private Carrito carrito;
+    private final Carrito carrito;
     private List<CanalNotificacion> canalesPreferidos;
     private String direccion;
     private String email;

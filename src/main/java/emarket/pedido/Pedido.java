@@ -5,24 +5,27 @@ import emarket.estado.EstadoPedido;
 import emarket.notificacion.EventoNotificacion;
 import emarket.notificacion.ObservadorNotificacion;
 import emarket.notificacion.SujetoObservable;
+import emarket.pago.TipoPago;
 import java.util.ArrayList;
 import java.util.List;
 
 // Observer sujeto + State: el pedido notifica cambios de estado a sus observadores
 public class Pedido implements SujetoObservable {
 
-    private int id;
+    private final int id;
     private EstadoPedido estadoActual;
-    private List<ObservadorNotificacion> observadores = new ArrayList<>();
-    private List<ItemPedido> items;
-    private Cliente cliente;
+    private final List<ObservadorNotificacion> observadores = new ArrayList<>();
+    private final List<ItemPedido> items;
+    private final Cliente cliente;
+    private final TipoPago tipoPago;
     private double total;
 
-    public Pedido(int id, Cliente cliente, List<ItemPedido> items, double total) {
-        this.id = id;
-        this.cliente = cliente;
-        this.items = items;
-        this.total = total;
+    public Pedido(int id, Cliente cliente, List<ItemPedido> items, double total, TipoPago tipoPago) {
+        this.id       = id;
+        this.cliente  = cliente;
+        this.items    = items;
+        this.total    = total;
+        this.tipoPago = tipoPago;
     }
 
     // Cambia el estado y notifica automáticamente a los observadores
@@ -32,6 +35,10 @@ public class Pedido implements SujetoObservable {
     }
 
     public EstadoPedido getEstado() { return estadoActual; }
+
+    public void avanzarEstado() {
+        estadoActual.procesar(this);
+    }
 
     @Override
     public void agregarObservador(ObservadorNotificacion o) {
@@ -55,16 +62,20 @@ public class Pedido implements SujetoObservable {
         }
     }
 
-    public int getId() { return id; }
+    public int getId()          { return id; }
     public Cliente getCliente() { return cliente; }
-    public double getTotal() { return total; }
+    public double getTotal()    { return total; }
     public List<ItemPedido> getItems() { return items; }
+    public TipoPago getTipoPago()      { return tipoPago; }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Pedido #%d | Estado: %s | Total: $%.2f%n",
-                id, estadoActual != null ? estadoActual.getNombre() : "SIN ESTADO", total));
+        sb.append(String.format("Pedido #%d | Estado: %s | Pago: %s | Total: $%.2f%n",
+                id,
+                estadoActual != null ? estadoActual.getNombre() : "SIN ESTADO",
+                tipoPago,
+                total));
         for (ItemPedido item : items) {
             sb.append(item.toString()).append("\n");
         }

@@ -1,16 +1,15 @@
 package emarket;
 
-import emarket.auth.AutenticacionService;
-import emarket.auth.Cliente;
-import emarket.carrito.Carrito;
 import emarket.carrito.ItemCarrito;
 import emarket.catalogo.Categoria;
-import emarket.catalogo.CatalogoService;
 import emarket.catalogo.ComponenteCatalogo;
 import emarket.catalogo.Producto;
-import emarket.estado.*;
 import emarket.facade.LibreriaFacade;
 import emarket.notificacion.CanalNotificacion;
+import emarket.repositorio.factory.InMemoryRepositorioFactory;
+import emarket.repositorio.factory.JdbcRepositorioFactory;
+import emarket.repositorio.factory.RepositorioFactory;
+import emarket.util.Validaciones;
 import emarket.pago.TipoPago;
 import emarket.pedido.ItemPedido;
 import emarket.pedido.Pedido;
@@ -25,22 +24,32 @@ public class Main {
     private static Scanner scanner;
 
     public static void main(String[] args) {
-        facade  = new LibreriaFacade();
+        // Elegir la factory según el argumento de línea de comandos:
+        //   java -jar app.jar --jdbc  →  PostgreSQL (requiere Docker activo)
+        //   java -jar app.jar         →  en memoria (sin dependencias externas)
+        boolean usarJdbc = Arrays.asList(args).contains("--jdbc");
+        RepositorioFactory factory = usarJdbc
+                ? new JdbcRepositorioFactory()
+                : new InMemoryRepositorioFactory();
+
+        System.out.println();
+        System.out.println("  Modo de persistencia: " +
+                (usarJdbc ? "PostgreSQL via JDBC" : "En memoria"));
+        System.out.println();
+
+        facade  = new LibreriaFacade(factory);
         scanner = new Scanner(System.in);
 
-        precargarDatos();
+        facade.precargarDatos();
 
         boolean corriendo = true;
         while (corriendo) {
-            limpiarPantalla();
-            AutenticacionService auth = facade.getAutService();
-
-            if (!auth.estaAutenticado()) {
+            if (!facade.estaAutenticado()) {
                 corriendo = menuSinSesion();
-            } else if (auth.getClienteActual() != null) {
-                corriendo = menuCliente(auth.getClienteActual());
+            } else if (facade.esCliente()) {
+                corriendo = menuCliente();
             } else {
-                corriendo = menuAdmin(auth.getUsuarioActual().getUsername());
+                corriendo = menuAdmin(facade.getUsernameActual());
             }
         }
 
@@ -54,15 +63,15 @@ public class Main {
 
     private static boolean menuSinSesion() {
         cabecera("EMARKET v1.0");
-        System.out.println("  1. Iniciar sesión");
-        System.out.println("  2. Registrarse como cliente");
+        System.out.println("  1. Registrarse como cliente");
+        System.out.println("  2. Iniciar sesión");
         System.out.println("  3. Registrarse como administrador");
         System.out.println("  0. Salir");
         separador();
 
         switch (leerOpcion()) {
-            case 1 -> accionIniciarSesion();
-            case 2 -> accionRegistrarCliente();
+            case 1 -> accionRegistrarCliente();
+            case 2 -> accionIniciarSesion();
             case 3 -> accionRegistrarAdmin();
             case 0 -> { return false; }
             default -> error("Opción inválida.");
@@ -71,8 +80,8 @@ public class Main {
         return true;
     }
 
-    private static boolean menuCliente(Cliente cliente) {
-        cabecera("EMARKET — " + cliente.getUsername() + " [CLIENTE]");
+    private static boolean menuCliente() {
+        cabecera("EMARKET — " + facade.getUsernameActual() + " [CLIENTE]");
         System.out.println("  1. Ver catálogo");
         System.out.println("  2. Buscar producto por ID");
         System.out.println("  3. Agregar producto al carrito");
@@ -87,7 +96,7 @@ public class Main {
             case 1 -> accionVerCatalogo();
             case 2 -> accionBuscarProducto();
             case 3 -> accionAgregarAlCarrito();
-            case 4 -> accionVerCarrito(cliente);
+            case 4 -> accionVerCarrito();
             case 5 -> accionConfirmarCompra();
             case 6 -> accionMisPedidos();
             case 7 -> { facade.cerrarSesion(); ok("Sesión cerrada."); }
@@ -106,7 +115,7 @@ public class Main {
         System.out.println("  4. Agregar categoría");
         System.out.println("  5. Modificar stock de producto");
         System.out.println("  8. Ver todos los pedidos");
-        System.out.println("  9. Actualizar estado de pedido");
+        System.out.println("  9. Avanzar estado de pedido");
         System.out.println("  7. Cerrar sesión");
         System.out.println("  0. Salir");
         separador();
@@ -132,18 +141,21 @@ public class Main {
     // ══════════════════════════════════════════════════════════════════════════
 
     private static void accionIniciarSesion() {
+        cabecera("INICIAR SESIÓN");
         System.out.print("  Usuario    : ");
         String username = scanner.nextLine().trim();
         String pass = leerPassword("  Contraseña : ");
 
         if (facade.iniciarSesion(username, pass)) {
             ok("Sesión iniciada. ¡Bienvenido/a, " + username + "!");
+            mostrarNotificacionesPendientes();
         } else {
             error("Usuario o contraseña incorrectos.");
         }
     }
 
     private static void accionRegistrarCliente() {
+        cabecera("REGISTRO DE CLIENTE");
         System.out.print("  Usuario            : ");
         String username = scanner.nextLine().trim();
         String pass = pedirPasswordConConfirmacion();
@@ -151,12 +163,15 @@ public class Main {
         String direccion = scanner.nextLine().trim();
         String email = pedirEmail();
         String telefono = pedirTelefono();
-        // El token push lo genera el sistema operativo del dispositivo en una app real;
-        // acá lo derivamos del username para mantener el canal PUSH funcional en la demo.
         String token = "TOKEN_" + username.toUpperCase();
         System.out.println("  Canales disponibles: EMAIL, SMS, PUSH");
-        System.out.print("  Canales preferidos  (separados por coma): ");
-        List<CanalNotificacion> canales = parsearCanales(scanner.nextLine().trim());
+        List<CanalNotificacion> canales;
+        do {
+            System.out.print("  Canales preferidos  (separados por coma): ");
+            canales = parsearCanales(scanner.nextLine().trim());
+            if (canales.isEmpty())
+                System.out.println("  ✗ Ningún canal válido. Ingresá al menos uno: EMAIL, SMS o PUSH.");
+        } while (canales.isEmpty());
 
         try {
             facade.registrarClienteCompleto(username, pass, direccion, email, telefono, token, canales);
@@ -166,13 +181,28 @@ public class Main {
         }
     }
 
+    private static void mostrarNotificacionesPendientes() {
+        List<String> pendientes = facade.tomarNotificaciones();
+        if (pendientes.isEmpty()) return;
+        System.out.println();
+        separador();
+        System.out.println("  Notificaciones pendientes:");
+        for (String n : pendientes) {
+            System.out.println(n);
+        }
+        separador();
+    }
+
     private static void accionRegistrarAdmin() {
-        System.out.print("  Usuario    : ");
+        cabecera("REGISTRO DE ADMINISTRADOR");
+        System.out.print("  Usuario          : ");
         String username = scanner.nextLine().trim();
         String pass = pedirPasswordConConfirmacion();
+        System.out.print("  Clave de admin   : ");
+        String claveAdmin = scanner.nextLine().trim();
 
         try {
-            facade.registrarAdministrador(username, pass);
+            facade.registrarAdministrador(username, pass, claveAdmin);
             ok("Administrador '" + username + "' registrado correctamente.");
         } catch (Exception e) {
             error("Error al registrar: " + e.getMessage());
@@ -184,7 +214,6 @@ public class Main {
     // ══════════════════════════════════════════════════════════════════════════
 
     private static void accionVerCatalogo() {
-        limpiarPantalla();
         cabecera("CATÁLOGO DE LIBROS");
         try {
             imprimirCatalogo(facade.listarCatalogo(), "  ");
@@ -232,47 +261,103 @@ public class Main {
         }
     }
 
-    private static void accionVerCarrito(Cliente cliente) {
-        limpiarPantalla();
-        cabecera("MI CARRITO");
+    private static void accionVerCarrito() {
+        boolean enCarrito = true;
+        while (enCarrito) {
+            cabecera("MI CARRITO");
 
-        Carrito carrito = cliente.getCarrito();
-        List<ItemCarrito> items = carrito.getItems();
+            List<ItemCarrito> items = facade.getItemsCarrito();
 
-        if (items.isEmpty()) {
-            System.out.println("  El carrito está vacío.");
-            return;
+            if (items.isEmpty()) {
+                System.out.println("  El carrito está vacío.");
+                return;
+            }
+
+            System.out.printf("  %-4s %-22s %6s   %10s   %10s%n", "ID", "Producto", "Cant.", "Precio unit.", "Subtotal");
+            separador();
+            for (ItemCarrito item : items) {
+                System.out.printf("  %-4d %-22s %6d   $%9.2f   $%9.2f%n",
+                        item.getProducto().getId(),
+                        item.getProducto().getNombre(),
+                        item.getCantidad(),
+                        item.getProducto().getPrecio(),
+                        item.getSubtotal());
+            }
+            separador();
+            double subtotal = facade.getTotalCarrito();
+            System.out.printf("  %-28s %10s   $%9.2f%n", "SUBTOTAL", "", subtotal);
+            double total = subtotal * (1 + 0.21);
+            System.out.printf("  %-28s %10s   $%9.2f%n", "TOTAL (c/ IVA 21%)", "", total);
+            System.out.println();
+
+            System.out.println("  1. Eliminar un producto");
+            System.out.println("  2. Modificar cantidad de un producto");
+            System.out.println("  3. Vaciar carrito");
+            System.out.println("  0. Volver");
+            separador();
+
+            switch (leerOpcion()) {
+                case 1 -> accionEliminarDelCarrito();
+                case 2 -> accionModificarCantidadEnCarrito();
+                case 3 -> {
+                    try {
+                        facade.vaciarCarrito();
+                        ok("Carrito vaciado.");
+                    } catch (Exception e) {
+                        error(e.getMessage());
+                    }
+                    enCarrito = false;
+                }
+                case 0 -> enCarrito = false;
+                default -> { error("Opción inválida."); pausar(); }
+            }
         }
+    }
 
-        System.out.printf("  %-22s %6s   %10s   %10s%n", "Producto", "Cant.", "Precio unit.", "Subtotal");
-        separador();
-        for (ItemCarrito item : items) {
-            System.out.printf("  %-22s %6d   $%9.2f   $%9.2f%n",
-                    item.getProducto().getNombre(),
-                    item.getCantidad(),
-                    item.getProducto().getPrecio(),
-                    item.getSubtotal());
+    private static void accionEliminarDelCarrito() {
+        System.out.print("  ID del producto a eliminar: ");
+        int id = leerEntero();
+        if (id < 0) { error("ID inválido."); pausar(); return; }
+        try {
+            facade.eliminarProductoDelCarrito(id);
+            ok("Producto eliminado del carrito.");
+        } catch (Exception e) {
+            error(e.getMessage());
         }
-        separador();
-        System.out.printf("  %-22s %6s   %10s   $%9.2f%n",
-                "SUBTOTAL", "", "", carrito.calcularTotal());
-        double total = carrito.calcularTotal() * (1 + 0.21);
-        System.out.printf("  %-22s %6s   %10s   $%9.2f%n",
-                "TOTAL (c/ IVA 21%)", "", "", total);
+        pausar();
+    }
+
+    private static void accionModificarCantidadEnCarrito() {
+        System.out.print("  ID del producto: ");
+        int id = leerEntero();
+        if (id < 0) { error("ID inválido."); pausar(); return; }
+        System.out.print("  Nueva cantidad : ");
+        int cantidad = leerEntero();
+        if (cantidad <= 0) { error("La cantidad debe ser mayor a 0."); pausar(); return; }
+        try {
+            facade.modificarCantidadEnCarrito(id, cantidad);
+            ok("Cantidad actualizada.");
+        } catch (Exception e) {
+            error(e.getMessage());
+        }
+        pausar();
     }
 
     private static void accionConfirmarCompra() {
+        cabecera("CONFIRMAR COMPRA");
         System.out.println("  Métodos de pago:");
         System.out.println("    1. Tarjeta de crédito");
         System.out.println("    2. PayPal");
-        System.out.println("    3. Transferencia bancaria");
+        System.out.println("    3. MercadoPago");
+        System.out.println("    4. Transferencia bancaria");
         System.out.print("  Elegí un método: ");
         int metodo = leerEntero();
 
         TipoPago tipoPago = switch (metodo) {
             case 1 -> TipoPago.TARJETA_CREDITO;
             case 2 -> TipoPago.PAYPAL;
-            case 3 -> TipoPago.TRANSFERENCIA;
+            case 3 -> TipoPago.MERCADO_PAGO;
+            case 4 -> TipoPago.TRANSFERENCIA;
             default -> null;
         };
 
@@ -281,10 +366,10 @@ public class Main {
             return;
         }
 
-        System.out.println();
         try {
-            facade.confirmarCompra(tipoPago);
+            facade.confirmarCompra(tipoPago, facade.pedirDatosPago(tipoPago, scanner));
             ok("¡Compra confirmada con éxito!");
+            facade.tomarNotificaciones();
         } catch (IllegalStateException e) {
             error(e.getMessage());
         }
@@ -295,7 +380,6 @@ public class Main {
     // ══════════════════════════════════════════════════════════════════════════
 
     private static void accionMisPedidos() {
-        limpiarPantalla();
         cabecera("MIS PEDIDOS");
 
         try {
@@ -317,7 +401,6 @@ public class Main {
     // ══════════════════════════════════════════════════════════════════════════
 
     private static void accionVerTodosLosPedidos() {
-        limpiarPantalla();
         cabecera("TODOS LOS PEDIDOS");
 
         try {
@@ -335,34 +418,13 @@ public class Main {
     }
 
     private static void accionActualizarEstadoPedido() {
-        System.out.print("  ID del pedido a actualizar: ");
+        System.out.print("  ID del pedido a avanzar: ");
         int id = leerEntero();
         if (id < 0) { error("ID inválido."); return; }
 
-        System.out.println("  Estados disponibles:");
-        System.out.println("    1. PENDIENTE");
-        System.out.println("    2. PAGADO");
-        System.out.println("    3. ENVIADO");
-        System.out.println("    4. ENTREGADO");
-        System.out.print("  Nuevo estado: ");
-
-        EstadoPedido nuevoEstado = switch (leerEntero()) {
-            case 1 -> new EstadoPendiente();
-            case 2 -> new EstadoPagado();
-            case 3 -> new EstadoEnviado();
-            case 4 -> new EstadoEntregado();
-            default -> null;
-        };
-
-        if (nuevoEstado == null) {
-            error("Estado inválido.");
-            return;
-        }
-
-        System.out.println();
         try {
-            facade.actualizarEstadoPedido(id, nuevoEstado);
-            ok("Estado del pedido #" + id + " actualizado a: " + nuevoEstado.getNombre());
+            Pedido pedido = facade.actualizarEstadoPedido(id);
+            ok("Pedido #" + id + " avanzó a estado: " + pedido.getEstado().getNombre());
         } catch (IllegalStateException e) {
             error(e.getMessage());
         }
@@ -419,38 +481,6 @@ public class Main {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // PRECARGA DE DATOS DE EJEMPLO
-    // ══════════════════════════════════════════════════════════════════════════
-
-    private static void precargarDatos() {
-        CatalogoService cat = facade.getCatService();
-
-        Categoria raiz = new Categoria("Catálogo de Libros");
-        cat.setCatalogoRaiz(raiz);
-
-        Categoria ficcion = cat.crearCategoria("Ficción", raiz);
-        cat.agregarProducto(ficcion, new Producto(1, "Cien años de soledad",  2500.0,  8));
-        cat.agregarProducto(ficcion, new Producto(2, "El principito",         1800.0, 12));
-        cat.agregarProducto(ficcion, new Producto(3, "1984",                  2200.0,  6));
-
-        Categoria tecnicos = cat.crearCategoria("Técnicos", raiz);
-        cat.agregarProducto(tecnicos, new Producto(4, "Clean Code",           4500.0,  5));
-        cat.agregarProducto(tecnicos, new Producto(5, "Design Patterns",      5000.0,  3));
-
-        Categoria historia = cat.crearCategoria("Historia", raiz);
-        cat.agregarProducto(historia, new Producto(6, "Sapiens",              3200.0, 10));
-        cat.agregarProducto(historia, new Producto(7, "El arte de la guerra", 1500.0, 15));
-
-        // Usuarios precargados para la demo
-        facade.registrarClienteCompleto(
-                "juan", "1234", "Av. Corrientes 1234, CABA",
-                "juan@email.com", "1155551234", "TOKEN_JUAN",
-                Arrays.asList(CanalNotificacion.EMAIL, CanalNotificacion.PUSH));
-
-        facade.registrarAdministrador("admin", "admin123");
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════
     // HELPERS DE DISPLAY
     // ══════════════════════════════════════════════════════════════════════════
 
@@ -495,25 +525,20 @@ public class Main {
         }
     }
 
-    // Lee una contraseña ocultando los caracteres con ANSI conceal (\033[8m).
-    // Siempre usa el scanner (conectado a stdin), así funciona tanto en terminal
-    // real como con stdin redirigido. El ocultamiento visual es "best-effort":
-    // funciona en Terminal/iTerm2/zsh; en IDEs los caracteres pueden verse igual.
     private static String leerPassword(String prompt) {
-        System.out.print(prompt + "\033[8m"); // activar modo oculto
+        System.out.print(prompt + "\033[8m");
         String pass;
         try {
             pass = scanner.nextLine().trim();
         } catch (java.util.NoSuchElementException e) {
             pass = "";
         } finally {
-            System.out.print("\033[0m"); // restaurar visibilidad
+            System.out.print("\033[0m");
             System.out.flush();
         }
         return pass;
     }
 
-    // Pide la contraseña dos veces y repite hasta que coincidan.
     private static String pedirPasswordConConfirmacion() {
         while (true) {
             String p1 = leerPassword("  Contraseña         : ");
@@ -527,18 +552,15 @@ public class Main {
         }
     }
 
-    // Pide un email y repite hasta que tenga texto antes y después del '@'.
     private static String pedirEmail() {
         while (true) {
             System.out.print("  Email              : ");
             String email = scanner.nextLine().trim();
-            int at = email.indexOf('@');
-            if (at > 0 && at < email.length() - 1) return email;
+            if (Validaciones.esEmailValido(email)) return email;
             error("El email debe contener '@' con texto antes y después. Ej: nombre@dominio.com");
         }
     }
 
-    // Pide un teléfono y repite hasta que tenga exactamente 10 dígitos numéricos.
     private static String pedirTelefono() {
         while (true) {
             System.out.print("  Teléfono (10 dígitos): ");
@@ -551,12 +573,14 @@ public class Main {
     private static List<CanalNotificacion> parsearCanales(String input) {
         List<CanalNotificacion> canales = new ArrayList<>();
         for (String parte : input.toUpperCase().split(",")) {
+            String valor = parte.trim();
             try {
-                canales.add(CanalNotificacion.valueOf(parte.trim()));
-            } catch (IllegalArgumentException ignored) { }
+                canales.add(CanalNotificacion.valueOf(valor));
+            } catch (IllegalArgumentException e) {
+                if (!valor.isEmpty())
+                    System.out.println("  ✗ Canal desconocido ignorado: '" + valor + "'");
+            }
         }
-        // Si no se eligió ninguno válido, usar EMAIL por defecto
-        if (canales.isEmpty()) canales.add(CanalNotificacion.EMAIL);
         return canales;
     }
 
@@ -564,14 +588,8 @@ public class Main {
     // HELPERS DE UI
     // ══════════════════════════════════════════════════════════════════════════
 
-    private static void limpiarPantalla() {
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
-    }
-
     private static void cabecera(String titulo) {
         System.out.println("╔══════════════════════════════════╗");
-        // Centrar el título dentro de 34 caracteres
         int padding = Math.max(0, (34 - titulo.length()) / 2);
         System.out.println("║" + " ".repeat(padding) + titulo
                 + " ".repeat(Math.max(0, 34 - padding - titulo.length())) + "║");

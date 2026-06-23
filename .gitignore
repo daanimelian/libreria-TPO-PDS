@@ -1,5 +1,18 @@
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
 # Compiled class file
 *.class
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# DB credentials (usar db.properties.example como template)
+src/main/resources/db.properties
 
 # Log file
 *.log
@@ -22,5 +35,3 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
-CLAUDE.md
-target/

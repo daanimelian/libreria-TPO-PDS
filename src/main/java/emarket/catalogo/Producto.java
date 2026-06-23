@@ -16,6 +16,7 @@ public class Producto implements ComponenteCatalogo {
     }
 
     public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
     @Override
     public String getNombre() { return nombre; }

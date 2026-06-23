@@ -7,7 +7,6 @@ public abstract class Usuario {
 
     public Usuario(String username, String pass) {
         this.username = username;
-        // Hash simulado con hashCode nativo de String
         this.passwordHash = String.valueOf(pass.hashCode());
     }
 
@@ -16,4 +15,9 @@ public abstract class Usuario {
     public boolean validarCredenciales(String pass) {
         return passwordHash.equals(String.valueOf(pass.hashCode()));
     }
+
+    public String getPasswordHash() { return passwordHash; }
+
+    // Para uso exclusivo de la capa de persistencia: restaura el hash ya calculado
+    public void setPasswordHash(String hash) { this.passwordHash = hash; }
 }
