@@ -35,15 +35,16 @@ public class CatalogoService {
     }
 
     public void agregarProductoEnCategoria(String nombreCategoria, Producto producto) {
-        Categoria cat = buscarCategoriaPorNombre(catalogoRaiz, nombreCategoria);
+        Categoria cat = buscarCategoriaPorNombre(repositorio.obtenerRaiz(), nombreCategoria);
         if (cat == null) throw new IllegalArgumentException("Categoría no encontrada: " + nombreCategoria);
-        cat.agregarComponente(producto);
+        repositorio.guardarProducto(producto, cat);
     }
 
     public void agregarCategoria(String nombre, String nombrePadre) {
-        Categoria padre = buscarCategoriaPorNombre(catalogoRaiz, nombrePadre);
+        Categoria padre = buscarCategoriaPorNombre(repositorio.obtenerRaiz(), nombrePadre);
         if (padre == null) throw new IllegalArgumentException("Categoría padre no encontrada: " + nombrePadre);
-        padre.agregarComponente(new Categoria(nombre));
+        Categoria nueva = new Categoria(nombre);
+        repositorio.guardarCategoria(nueva, padre);
     }
 
     public void modificarStock(int id, int nuevoStock) {
