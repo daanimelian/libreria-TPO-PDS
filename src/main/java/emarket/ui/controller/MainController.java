@@ -2,6 +2,7 @@ package emarket.ui.controller;
 
 import emarket.facade.LibreriaFacade;
 import emarket.ui.LibreriaSwingApp;
+import emarket.ui.view.AdminCatalogoView;
 import emarket.ui.view.AdminPedidosView;
 import emarket.ui.view.CarritoView;
 import emarket.ui.view.CatalogoView;
@@ -18,7 +19,8 @@ public class MainController {
     private static final String PANEL_CATALOGO = "CATALOGO";
     private static final String PANEL_CARRITO = "CARRITO";
     private static final String PANEL_MIS_PEDIDOS = "MIS_PEDIDOS";
-    private static final String PANEL_PEDIDOS_ADMIN = "PEDIDOS_ADMIN";
+    private static final String PANEL_PEDIDOS_ADMIN  = "PEDIDOS_ADMIN";
+    private static final String PANEL_CATALOGO_ADMIN = "CATALOGO_ADMIN";
 
     private final LibreriaFacade facade;
     private final MainFrame mainFrame = new MainFrame();
@@ -27,6 +29,7 @@ public class MainController {
     private CarritoController carritoController;
     private PedidosClienteController pedidosClienteController;
     private AdminPedidosController adminPedidosController;
+    private AdminCatalogoController adminCatalogoController;
     private NotificacionesController notificacionesController;
 
     public MainController(LibreriaFacade facade) {
@@ -56,6 +59,10 @@ public class MainController {
             adminPedidosController = new AdminPedidosController(facade, adminPedidosView, mainFrame);
             mainFrame.agregarPanel(PANEL_PEDIDOS_ADMIN, adminPedidosView);
 
+            AdminCatalogoView adminCatalogoView = new AdminCatalogoView();
+            adminCatalogoController = new AdminCatalogoController(facade, adminCatalogoView);
+            mainFrame.agregarPanel(PANEL_CATALOGO_ADMIN, adminCatalogoView);
+
             mainFrame.configurarParaAdmin();
         }
 
@@ -82,6 +89,7 @@ public class MainController {
                 adminPedidosController.refrescar();
                 mainFrame.mostrarPanel(PANEL_PEDIDOS_ADMIN);
             });
+            mainFrame.setCatalogoAdminListener(e -> mainFrame.mostrarPanel(PANEL_CATALOGO_ADMIN));
         }
 
         mainFrame.setCerrarSesionListener(e -> cerrarSesion());

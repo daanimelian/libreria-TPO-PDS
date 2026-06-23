@@ -25,6 +25,7 @@ public class MainFrame extends JFrame {
     private final JButton btnCarrito = new JButton("Carrito");
     private final JButton btnMisPedidos = new JButton("Mis pedidos");
     private final JButton btnPedidosAdmin = new JButton("Pedidos (admin)");
+    private final JButton btnCatalogoAdmin = new JButton("Gestión catálogo");
     private final JButton btnNotificaciones = new JButton("Notificaciones");
     private final JButton btnCerrarSesion = new JButton("Cerrar sesión");
 
@@ -39,6 +40,7 @@ public class MainFrame extends JFrame {
         barraNavegacion.add(btnCarrito);
         barraNavegacion.add(btnMisPedidos);
         barraNavegacion.add(btnPedidosAdmin);
+        barraNavegacion.add(btnCatalogoAdmin);
         barraNavegacion.add(btnNotificaciones);
         barraNavegacion.addSeparator();
         barraNavegacion.add(javax.swing.Box.createHorizontalGlue());
@@ -71,6 +73,7 @@ public class MainFrame extends JFrame {
         btnMisPedidos.setVisible(true);
         btnNotificaciones.setVisible(true);
         btnPedidosAdmin.setVisible(false);
+        btnCatalogoAdmin.setVisible(false);
     }
 
     public void configurarParaAdmin() {
@@ -78,6 +81,7 @@ public class MainFrame extends JFrame {
         btnMisPedidos.setVisible(false);
         btnNotificaciones.setVisible(false);
         btnPedidosAdmin.setVisible(true);
+        btnCatalogoAdmin.setVisible(true);
     }
 
     public void setCatalogoListener(ActionListener listener) {
@@ -94,6 +98,10 @@ public class MainFrame extends JFrame {
 
     public void setPedidosAdminListener(ActionListener listener) {
         btnPedidosAdmin.addActionListener(listener);
+    }
+
+    public void setCatalogoAdminListener(ActionListener listener) {
+        btnCatalogoAdmin.addActionListener(listener);
     }
 
     public void setNotificacionesListener(ActionListener listener) {
